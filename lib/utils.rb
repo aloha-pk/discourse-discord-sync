@@ -1,35 +1,5 @@
 # Class that will run all sync jobs
 class Util
-  # Method triggered from Discord
-  def self.sync_from_discord(discord_id)
-    # Search for users with the given Discord UD
-    builder = DB.build("select u.* from user_associated_accounts uaa, users u /*where*/ limit 1")
-    builder.where("provider_name = :provider_name", provider_name: "discord")
-    builder.where("uaa.user_id = u.id")
-    builder.where("uaa.provider_uid = :discord_id", discord_id: discord_id)
-
-    result = builder.query
-
-    if result.size == 0 then
-      
-      # No profile on Discourse? Then just remove all roles from Discord
-      Instance::bot.servers.each do |key, server|
-        member = server.member(discord_id)
-        member.roles.each do |role|
-          Instance::bot.send_message(SiteSetting.discord_bot_admin_channel_id, "@#{user.username} removed role #{role.name}")
-          member.remove_role(role)
-        end
-      end
-
-    else
-
-      # Process and sync the user using the standard Discourse method
-      result.each do |t|
-        self.sync_user(t)
-      end
-
-    end
-  end
 
   # Search for a role in the server with a given name
   def self.find_role(role_name)
@@ -43,6 +13,27 @@ class Util
     end
     discord_role
   end
+
+  # Method triggered to sync user on Discord server join
+  def self.sync_from_discord(discord_id)
+    # Search for users with the given Discord UD
+    builder = DB.build("select u.* from user_associated_accounts uaa, users u /*where*/ limit 1")
+    builder.where("provider_name = :provider_name", provider_name: "discord")
+    builder.where("uaa.user_id = u.id")
+    builder.where("uaa.provider_uid = :discord_id", discord_id: discord_id)
+
+    result = builder.query
+
+    # If forum account found
+    if result.size != 0 then
+
+      # Process and sync the user using the standard Discourse method
+      result.each do |t|
+        self.sync_user(t)
+      end
+
+    end
+  end  
 
   # Sync users from Discourse to Discord
   def self.sync_user(user)
@@ -73,7 +64,7 @@ class Util
         member = server.member(discord_id)
         unless member.nil? then
 
-          # Make nickname the same as Discourse username
+          # Make nickname the same as Discourse username, if setting is enabled
           if member.nick != user.username && SiteSetting.discord_sync_username then
             Instance::bot.send_message(SiteSetting.discord_sync_admin_channel_id, "Updated nickname @#{user.username}")
             member.set_nick(user.username)
@@ -106,7 +97,16 @@ class Util
           end
 
         end
-      end
+      end      
     end
   end
+
+  #Sync groups from Discourse to Discord
+  def self.sync_groups_and_roles()
+    #to:do
+    #create (forum, discord) map
+    #fetch forum group color and set discord role color
+    #fetch forum group icon pic and set dicord role icon
+  end
+
 end

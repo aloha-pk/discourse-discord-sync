@@ -1,8 +1,8 @@
 # name: Discord Sync
 # about: Sync a Discord server with a Discourse community
 # version: 1.0
-# authors: Diego Barreiro
-# url: https://github.com/barreeeiroo/discourse-discord-sync
+# authors: Diego Barreiro, FerrariFlunker
+# url: https://github.com/aloha-pk/discourse-discord-sync
 
 gem 'rbnacl', '3.4.0'
 gem 'event_emitter', '0.2.6'
@@ -36,26 +36,30 @@ after_initialize do
     end
   end
 
-  # Sync user on update (usually username)
+  # Sync user (and groups) on update (usually username)
   User.class_eval do
     after_save do |user|
       if user.id > 0 then Util.sync_user(user) end
+      Util.sync_groups_and_roles()
     end
   end
 
-  # Sync user on group join
+  # Sync user (and groups) on group join
   DiscourseEvent.on(:user_added_to_group) do |user, group, automatic|
     if user.id > 0 then Util.sync_user(user) end
+    Util.sync_groups_and_roles()
   end
 
-  # Sync user on group removal
+  # Sync user (and groups) on group removal
   DiscourseEvent.on(:user_removed_from_group) do |user, group|
     if user.id > 0 then Util.sync_user(user) end
+    Util.sync_groups_and_roles()
   end
 
-  # Sync user after authenticating with Discord
+  # Sync user (and groups) after authenticating with Discord
   DiscourseEvent.on(:after_auth) do |authenticator, auth_result|
     if authenticator.name == "discord" && auth_result.user.id > 0 then Util.sync_user(auth_result.user) end
+    Util.sync_groups_and_roles()
   end
 
   STDERR.puts '--------------------------------------------------'
