@@ -1,16 +1,50 @@
 # Class that will run all sync jobs
 class Util
 
-  # Search for a role in the server with a given name
-  def self.find_role(role_name)
-    discord_role = nil
-    Instance::bot.servers.each do |key, server|
-      server.roles.each do |role|
-        if role.name == role_name then
-          discord_role = role
+  #create {'forum group': 'discord role'} map
+  aloha_groups_map = { 
+    'staff-big-kahuna': "big kahuna", 
+    'staff-manager': "manager", 
+    'staff-sysadmin': "sysadmin", 
+    'staff-admin': "admin",
+    'staff-moderator': "moderator", 
+    'staff-guard': "guard", 
+    'staff-all': "staff", 
+    'staff-retired': "retiree", 
+    'staff-inactive': "",
+    'staff-mc-manager': "mc-manager", 
+    'staff-mc-admin': "mc-admin", 
+    'staff-mc-moderator': "mc-moderator", 
+    'staff-mc-guard': "mc-guard",
+    'staff-mc-all': "mc-staff", 
+    'player-mc': "mc-player", 
+    'developer': "developer", 
+    'news-team': "news-team", 
+    'news-team-leaders': "",
+    'player-trusted': "trusted", 
+    'kamaaina': "kamaaina", 
+    'donor': "", 
+    'amr': "amr", 
+    'aos-developer': "aos-developer", 
+    'aos-modder': "aos-modder",
+    'aos-mapmaker': "", 
+    'photographer': "photographer",
+    'event': "event" # dynamic for all event groups; handled in sync_user()
+  }
+
+  # Search for a role in the Discord server with a given Discourse group name
+  def self.find_role(forum_group)
+    discord_role = aloha_groups_map[:forum_group]
+    # if role exists, fetch discord role
+    if discord_role then
+      Instance::bot.servers.each do |key, server|
+        server.roles.each do |role|
+          if role.name == discord_role then
+            discord_role = role
+          end
         end
-      end
     end
+    # return role, or nil if it doesn't exist in aloha_groups_map
     discord_role
   end
 
@@ -48,7 +82,8 @@ class Util
     end
 
     unless discord_id.nil? then
-      groups = []
+      forum_groups = []
+      discord_roles = []
 
       # Get user groups from database
       builder = DB.build("select g.name from groups g, group_users gu /*where*/")
@@ -56,7 +91,8 @@ class Util
       builder.where("g.id = gu.group_id")
       builder.where("gu.user_id = :user_id", user_id: user.id)
       builder.query.each do |t|
-        groups << t.name
+        forum_groups << t.name
+        discord_roles << aloha_groups_map[:t.name]
       end
       
       # For each server, just keep things synced
@@ -79,9 +115,9 @@ class Util
             end
           end
 
-          # Remove all roles which are not safe, not the verified role or the user is not part of a group with that name
+          # Remove all roles which are not safe, not the verified role, or the user is not part of a group with that name
           member.roles.each do |role|
-            unless (groups.include? role.name) || (SiteSetting.discord_sync_safe_roles.include? role.name) || role.name == SiteSetting.discord_sync_verified_role then
+            unless (discord_roles.include? role.name) || (SiteSetting.discord_sync_safe_roles.include? role.name) || role.name == SiteSetting.discord_sync_verified_role then
               Instance::bot.send_message(SiteSetting.discord_sync_admin_channel_id, "@#{user.username} removed role #{role.name}")
               member.remove_role(role)
             end
@@ -89,7 +125,11 @@ class Util
 
           # Add all roles which the user is part of a group
           groups.each do |group|
-            role = self.find_role(group)
+            if group.include? "event-" then
+              role = self.find_role('event') # add event role if in Event Creator dynamic group(s)
+            else  
+              role = self.find_role(group)
+            end
             unless role.nil? || (member.role? role) then
               Instance::bot.send_message(SiteSetting.discord_sync_admin_channel_id, "@#{user.username} granted role #{role.name}")
               member.add_role(role)
