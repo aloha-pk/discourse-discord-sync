@@ -34,12 +34,13 @@ class Util
 
   # Search for a role in the Discord server with a given Discourse group name
   def self.find_role(forum_group)
-    discord_role = ALOHA_MAP[forum_group]
+    discord_role = nil
+    discord_role_name = ALOHA_MAP[forum_group]
     # if role exists, fetch discord role
     if discord_role then
       Instance::bot.servers.each do |key, server|
         server.roles.each do |role|
-          if role.name == discord_role then
+          if role.name == discord_role_name then
             discord_role = role
           end
         end
