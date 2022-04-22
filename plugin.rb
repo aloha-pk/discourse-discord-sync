@@ -57,10 +57,10 @@ after_initialize do
   end
 
   # Sync user (and groups) after authenticating with Discord
-  DiscourseEvent.on(:after_auth) do |authenticator, auth_result|
-    if authenticator.name == "discord" && auth_result.user.id > 0 then Util.sync_user(auth_result.user) end
-    Util.sync_groups_and_roles()
-  end
+  #DiscourseEvent.on(:after_auth) do |authenticator, auth_result|
+  #  if authenticator.name == "discord" && auth_result.user.id > 0 then Util.sync_user(auth_result.user) end
+  #  Util.sync_groups_and_roles()
+  #end
 
   STDERR.puts '--------------------------------------------------'
   STDERR.puts '!Discord-Sync Bot spawned, say "!ping" on Discord!'
