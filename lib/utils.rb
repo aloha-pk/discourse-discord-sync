@@ -1,40 +1,40 @@
 # Class that will run all sync jobs
 class Util
 
-  #create {'forum group': 'discord role'} ALOHA_MAP
+  #create {'forum group'=> 'discord role'} ALOHA_MAP
   ALOHA_MAP = { 
-    'staff-big-kahuna': "big kahuna", 
-    'staff-manager': "manager", 
-    'staff-sysadmin': "sysadmin", 
-    'staff-admin': "admin",
-    'staff-moderator': "moderator", 
-    'staff-guard': "guard", 
-    'staff-all': "staff", 
-    'staff-retired': "retiree", 
-    'staff-inactive': "",
-    'staff-mc-manager': "mc-manager", 
-    'staff-mc-admin': "mc-admin", 
-    'staff-mc-moderator': "mc-moderator", 
-    'staff-mc-guard': "mc-guard",
-    'staff-mc-all': "mc-staff", 
-    'player-mc': "mc-player", 
-    'developer': "developer", 
-    'news-team': "news-team", 
-    'news-team-leaders': "",
-    'player-trusted': "trusted", 
-    'kamaaina': "kamaaina", 
-    'donor': "", 
-    'amr': "amr", 
-    'aos-developer': "aos-developer", 
-    'aos-modder': "aos-modder",
-    'aos-mapmaker': "", 
-    'photographer': "photographer",
-    'event': "event" # dynamic for all event groups; handled in sync_user()
+    'staff-big-kahuna'=> "big kahuna", 
+    'staff-manager'=> "manager", 
+    'staff-sysadmin'=> "sysadmin", 
+    'staff-admin'=> "admin",
+    'staff-moderator'=> "moderator", 
+    'staff-guard'=> "guard", 
+    'staff-all'=> "staff", 
+    'staff-retired'=> "retiree", 
+    'staff-inactive'=> "",
+    'staff-mc-manager'=> "mc-manager", 
+    'staff-mc-admin'=> "mc-admin", 
+    'staff-mc-moderator'=> "mc-moderator", 
+    'staff-mc-guard'=> "mc-guard",
+    'staff-mc-all'=> "mc-staff", 
+    'player-mc'=> "mc-player", 
+    'developer'=> "developer", 
+    'news-team'=> "news-team", 
+    'news-team-leaders'=> "",
+    'player-trusted'=> "trusted", 
+    'kamaaina'=> "kamaaina", 
+    'donor'=> "", 
+    'amr'=> "amr", 
+    'aos-developer'=> "aos-developer", 
+    'aos-modder'=> "aos-modder",
+    'aos-mapmaker'=> "", 
+    'photographer'=> "photographer",
+    'event'=> "event" # dynamic for all event groups; handled in sync_user()
   }
 
   # Search for a role in the Discord server with a given Discourse group name
   def self.find_role(forum_group)
-    discord_role = ALOHA_ALOHA_MAP[:forum_group]
+    discord_role = ALOHA_MAP[forum_group]
     # if role exists, fetch discord role
     if discord_role then
       Instance::bot.servers.each do |key, server|
@@ -93,7 +93,7 @@ class Util
       builder.where("gu.user_id = :user_id", user_id: user.id)
       builder.query.each do |t|
         forum_groups << t.name
-        discord_roles << ALOHA_MAP[:t.name]
+        discord_roles << ALOHA_MAP[t.name]
       end
       
       # For each server, just keep things synced
