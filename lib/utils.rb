@@ -125,7 +125,7 @@ class Util
           end
 
           # Add all roles which the user is part of a group
-          groups.each do |group|
+          forum_groups.each do |group|
             if group.include? "event-" then
               role = self.find_role('event') # add event role if in Event Creator dynamic group(s)
             else  
