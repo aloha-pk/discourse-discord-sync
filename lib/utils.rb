@@ -149,7 +149,7 @@ class Util
 
     # For each server, just keep things synced
     #Instance::bot.servers.each do |key, server|
-
+    print('test')
 
     
   end
