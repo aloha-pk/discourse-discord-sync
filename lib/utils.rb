@@ -37,7 +37,7 @@ class Util
     discord_role = nil
     discord_role_name = ALOHA_MAP[forum_group]
     # if role exists, fetch discord role
-    if discord_role then
+    if discord_role_name then
       Instance::bot.servers.each do |key, server|
         server.roles.each do |role|
           if role.name == discord_role_name then
