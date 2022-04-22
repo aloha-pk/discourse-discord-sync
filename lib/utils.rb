@@ -1,8 +1,8 @@
 # Class that will run all sync jobs
 class Util
 
-  #create {'forum group': 'discord role'} map
-  aloha_groups_map = { 
+  #create {'forum group': 'discord role'} ALOHA_MAP
+  ALOHA_MAP = { 
     'staff-big-kahuna': "big kahuna", 
     'staff-manager': "manager", 
     'staff-sysadmin': "sysadmin", 
@@ -34,7 +34,7 @@ class Util
 
   # Search for a role in the Discord server with a given Discourse group name
   def self.find_role(forum_group)
-    discord_role = aloha_groups_map[:forum_group]
+    discord_role = ALOHA_ALOHA_MAP[:forum_group]
     # if role exists, fetch discord role
     if discord_role then
       Instance::bot.servers.each do |key, server|
@@ -45,7 +45,7 @@ class Util
         end
       end
     end
-    # return role, or nil if it doesn't exist in aloha_groups_map
+    # return role, or nil if it doesn't exist in ALOHA_MAP
     discord_role
   end
 
@@ -93,7 +93,7 @@ class Util
       builder.where("gu.user_id = :user_id", user_id: user.id)
       builder.query.each do |t|
         forum_groups << t.name
-        discord_roles << aloha_groups_map[:t.name]
+        discord_roles << ALOHA_MAP[:t.name]
       end
       
       # For each server, just keep things synced
