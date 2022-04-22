@@ -43,6 +43,7 @@ class Util
             discord_role = role
           end
         end
+      end
     end
     # return role, or nil if it doesn't exist in aloha_groups_map
     discord_role
@@ -149,10 +150,6 @@ class Util
 
     # For each server, just keep things synced
     #Instance::bot.servers.each do |key, server|
-    print('test')
-
-    
+    print('test')    
   end
-
-end
 end
