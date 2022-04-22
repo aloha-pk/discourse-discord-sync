@@ -149,7 +149,6 @@ class Util
     #fetch forum group icon pic and set dicord role icon
 
     # For each server, just keep things synced
-    #Instance::bot.servers.each do |key, server|
-    print('test')    
+    #Instance::bot.servers.each do |key, server|  
   end
 end
