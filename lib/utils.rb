@@ -142,7 +142,7 @@ class Util
   end
 
   #Sync groups from Discourse to Discord
-  #def self.sync_groups_and_roles()
+  def self.sync_groups_and_roles()
     #to:do
     #fetch forum group color and set discord role color
     #fetch forum group icon pic and set dicord role icon
@@ -152,8 +152,7 @@ class Util
 
 
     
-    #end
-  #end
+  end
 
 end
 end
