@@ -142,11 +142,17 @@ class Util
   end
 
   #Sync groups from Discourse to Discord
-  def self.sync_groups_and_roles()
+  #def self.sync_groups_and_roles()
     #to:do
-    #create (forum, discord) map
     #fetch forum group color and set discord role color
     #fetch forum group icon pic and set dicord role icon
-  end
+
+    # For each server, just keep things synced
+    #Instance::bot.servers.each do |key, server|
+
+
+    
+    #end
+  #end
 
 end
