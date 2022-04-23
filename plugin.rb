@@ -18,7 +18,7 @@ gem 'http-accept', '1.7.0', { require: false }
 gem 'rest-client', '2.1.0.rc1'
 
 gem 'discordrb-webhooks', '3.3.0', {require: false}
-gem 'discordrb', '3.3.0'
+gem 'discordrb', '3.4.1'
 
 
 enabled_site_setting :discord_sync_enabled
