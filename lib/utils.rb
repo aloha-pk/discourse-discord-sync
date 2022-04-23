@@ -153,7 +153,7 @@ class Util
             end
 
             unless role.nil? || (member.role? role) then
-              Instance::bot.send_message(SiteSetting.discord_sync_admin_channel_id, "#{Time.now.utc.iso8601}: @#{user.username} granted role #{role.name}")
+              Instance::bot.send_message(SiteSetting.discord_sync_admin_channel_id, "#{Time.now.utc.iso8601}: @#{user.username} granted role #{role}")
               member.add_role(role)
             end
           end
