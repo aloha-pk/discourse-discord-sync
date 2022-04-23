@@ -146,17 +146,12 @@ class Util
             end
           end
 
-          # Add all roles which the user is part of a group
-          forum_groups.each do |group|
+          # Add all roles which the user is a part of
+          discord_roles.each do |role|
             if SiteSetting.discord_debug_enabled then
-              Instance::bot.send_message(SiteSetting.discord_sync_admin_channel_id, "#{Time.now.utc.iso8601}: Deciding whether to add: #{group}")
+              Instance::bot.send_message(SiteSetting.discord_sync_admin_channel_id, "#{Time.now.utc.iso8601}: Deciding whether to add: #{role}")
             end
 
-            if group.include? "event-" then
-              role = self.find_role('event') # add event role if in Event Creator dynamic group(s)
-            else  
-              role = self.find_role(group)
-            end
             unless role.nil? || (member.role? role) then
               Instance::bot.send_message(SiteSetting.discord_sync_admin_channel_id, "#{Time.now.utc.iso8601}: @#{user.username} granted role #{role.name}")
               member.add_role(role)
