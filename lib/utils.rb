@@ -1,3 +1,5 @@
+require 'time'
+
 # Class that will run all sync jobs
 class Util
 
@@ -36,6 +38,11 @@ class Util
   def self.find_role(forum_group)
     discord_role = nil
     discord_role_name = ALOHA_MAP[forum_group]
+
+    if SiteSetting.discord_debug_enabled then
+      Instance::bot.send_message(SiteSetting.discord_sync_admin_channel_id, "#{Time.now.utc.iso8601}: find_role() role name: #{discord_role_name}")
+    end
+
     # if role exists, fetch discord role
     if discord_role_name then
       Instance::bot.servers.each do |key, server|
@@ -87,6 +94,11 @@ class Util
       forum_groups = []
       discord_roles = []
 
+      if SiteSetting.discord_debug_enabled then
+        Instance::bot.send_message(SiteSetting.discord_sync_admin_channel_id, "#{Time.now.utc.iso8601}: Attempting role sync on: #{discord_id}")
+        Instance::bot.send_message(SiteSetting.discord_sync_admin_channel_id, "#{Time.now.utc.iso8601}: Forum Groups: #{forum_groups}, Discord Roles: #{discord_roles}")
+      end
+
       # Get user groups from database
       builder = DB.build("select g.name from groups g, group_users gu /*where*/")
       builder.where("g.visibility_level = :visibility", visibility: 0)
@@ -96,6 +108,11 @@ class Util
         forum_groups << t.name
         discord_roles << ALOHA_MAP[t.name]
       end
+
+      if SiteSetting.discord_debug_enabled then
+        Instance::bot.send_message(SiteSetting.discord_sync_admin_channel_id, "#{Time.now.utc.iso8601}: Fetching groups for: #{user.id}")
+        Instance::bot.send_message(SiteSetting.discord_sync_admin_channel_id, "#{Time.now.utc.iso8601}: Forum Groups: #{forum_groups}, Discord Roles: #{discord_roles}")
+      end
       
       # For each server, just keep things synced
       Instance::bot.servers.each do |key, server|
@@ -104,7 +121,7 @@ class Util
 
           # Make nickname the same as Discourse username, if setting is enabled
           if member.nick != user.username && SiteSetting.discord_sync_username then
-            Instance::bot.send_message(SiteSetting.discord_sync_admin_channel_id, "Updated nickname @#{user.username}")
+            Instance::bot.send_message(SiteSetting.discord_sync_admin_channel_id, "#{Time.now.utc.iso8601}: Updated nickname @#{user.username}")
             member.set_nick(user.username)
           end
 
@@ -112,28 +129,36 @@ class Util
           if SiteSetting.discord_sync_verified_role != "" then
             role = self.find_role(SiteSetting.discord_sync_verified_role)
             unless role.nil? || (member.role? role) then
-              Instance::bot.send_message(SiteSetting.discord_sync_admin_channel_id, "@#{user.username} granted role #{role.name}")
+              Instance::bot.send_message(SiteSetting.discord_sync_admin_channel_id, "#{Time.now.utc.iso8601}: @#{user.username} granted role #{role.name}")
               member.add_role(role)
             end
           end
 
           # Remove all roles which are not safe, not the verified role, or the user is not part of a group with that name
           member.roles.each do |role|
+            if SiteSetting.discord_debug_enabled then
+              Instance::bot.send_message(SiteSetting.discord_sync_admin_channel_id, "#{Time.now.utc.iso8601}: Deciding whether to remove: #{role.name}")
+            end
+
             unless (discord_roles.include? role.name) || (SiteSetting.discord_sync_safe_roles.include? role.name) || role.name == SiteSetting.discord_sync_verified_role then
-              Instance::bot.send_message(SiteSetting.discord_sync_admin_channel_id, "@#{user.username} removed role #{role.name}")
+              Instance::bot.send_message(SiteSetting.discord_sync_admin_channel_id, "#{Time.now.utc.iso8601}: @#{user.username} removed role #{role.name}")
               member.remove_role(role)
             end
           end
 
           # Add all roles which the user is part of a group
           forum_groups.each do |group|
+            if SiteSetting.discord_debug_enabled then
+              Instance::bot.send_message(SiteSetting.discord_sync_admin_channel_id, "#{Time.now.utc.iso8601}: Deciding whether to add: #{group}")
+            end
+
             if group.include? "event-" then
               role = self.find_role('event') # add event role if in Event Creator dynamic group(s)
             else  
               role = self.find_role(group)
             end
             unless role.nil? || (member.role? role) then
-              Instance::bot.send_message(SiteSetting.discord_sync_admin_channel_id, "@#{user.username} granted role #{role.name}")
+              Instance::bot.send_message(SiteSetting.discord_sync_admin_channel_id, "#{Time.now.utc.iso8601}: @#{user.username} granted role #{role.name}")
               member.add_role(role)
             end
           end
