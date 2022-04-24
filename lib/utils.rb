@@ -150,16 +150,9 @@ class Util
           end
 
           # Add all roles which the user is a part of
-          discord_roles.each do |role|
-            if SiteSetting.discord_debug_enabled then
-              Instance::bot.send_message(SiteSetting.discord_sync_admin_channel_id, "#{Time.now.utc.iso8601}: Deciding whether to add: #{role.name}")
-            end
-
-            unless (member.role? role) then
-              member.add_role(role)              
-              Instance::bot.send_message(SiteSetting.discord_sync_admin_channel_id, "#{Time.now.utc.iso8601}: @#{user.username} granted role #{role.name}")
-            end
-          end
+          member.set_roles(discord_roles)
+          roles_string = discord_roles.map(&:name).join(',')             
+          Instance::bot.send_message(SiteSetting.discord_sync_admin_channel_id, "#{Time.now.utc.iso8601}: Set @#{user.username} roles to #{roles_string}")          
 
         end
       end      
