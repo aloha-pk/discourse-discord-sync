@@ -132,26 +132,20 @@ class Util
           if SiteSetting.discord_sync_verified_role != "" then
             role = self.find_role(SiteSetting.discord_sync_verified_role)
             unless role.nil? || (member.role? role) then
-              Instance::bot.send_message(SiteSetting.discord_sync_admin_channel_id, "#{Time.now.utc.iso8601}: @#{user.username} granted role #{role.name}")
-              member.add_role(role)
+              discord_roles << role
             end
           end
 
-          # Remove all roles which are not safe, not the verified role, or the user is not part of a group with that name
+          # Keep discord_sync_safe roles 
           member.roles.each do |role|
-            if SiteSetting.discord_debug_enabled then
-              Instance::bot.send_message(SiteSetting.discord_sync_admin_channel_id, "#{Time.now.utc.iso8601}: Deciding whether to remove: #{role.name}")
-            end
-
-            unless (discord_roles.include? role) || (SiteSetting.discord_sync_safe_roles.include? role.name) || role.name == SiteSetting.discord_sync_verified_role then
-              Instance::bot.send_message(SiteSetting.discord_sync_admin_channel_id, "#{Time.now.utc.iso8601}: @#{user.username} removed role #{role.name}")
-              member.remove_role(role)
+            if (SiteSetting.discord_sync_safe_roles.include? role.name) then
+              discord_roles << role
             end
           end
 
           # Add all roles which the user is a part of
           member.set_roles(discord_roles)
-          roles_string = discord_roles.map(&:name).join(',')             
+          roles_string = discord_roles.map(&:name).join(', ')             
           Instance::bot.send_message(SiteSetting.discord_sync_admin_channel_id, "#{Time.now.utc.iso8601}: Set @#{user.username} roles to #{roles_string}")          
 
         end
