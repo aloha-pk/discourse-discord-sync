@@ -99,15 +99,18 @@ class Util
         Instance::bot.send_message(SiteSetting.discord_sync_admin_channel_id, "#{Time.now.utc.iso8601}: Forum Groups: #{forum_groups}, Discord Roles: #{discord_roles}")
       end
 
-      # Get user groups from database
+      # Get user groups from database and populate discord_roles
       builder = DB.build("select g.name from groups g, group_users gu /*where*/")
       builder.where("g.visibility_level = :visibility", visibility: 0)
       builder.where("g.id = gu.group_id")
       builder.where("gu.user_id = :user_id", user_id: user.id)
       builder.query.each do |t|
         forum_groups << t.name
-        discord_roles << ALOHA_MAP[t.name]
+        discord_roles << self.find_role(t.name)
       end
+
+      forum_groups -= [nil, ''] # just in case
+      discord_roles -= [nil, '']
 
       if SiteSetting.discord_debug_enabled then
         Instance::bot.send_message(SiteSetting.discord_sync_admin_channel_id, "#{Time.now.utc.iso8601}: Fetching groups for: #{user.id}")
@@ -140,7 +143,7 @@ class Util
               Instance::bot.send_message(SiteSetting.discord_sync_admin_channel_id, "#{Time.now.utc.iso8601}: Deciding whether to remove: #{role.name}")
             end
 
-            unless (discord_roles.include? role.name) || (SiteSetting.discord_sync_safe_roles.include? role.name) || role.name == SiteSetting.discord_sync_verified_role then
+            unless (discord_roles.include? role) || (SiteSetting.discord_sync_safe_roles.include? role.name) || role.name == SiteSetting.discord_sync_verified_role then
               Instance::bot.send_message(SiteSetting.discord_sync_admin_channel_id, "#{Time.now.utc.iso8601}: @#{user.username} removed role #{role.name}")
               member.remove_role(role)
             end
@@ -149,12 +152,12 @@ class Util
           # Add all roles which the user is a part of
           discord_roles.each do |role|
             if SiteSetting.discord_debug_enabled then
-              Instance::bot.send_message(SiteSetting.discord_sync_admin_channel_id, "#{Time.now.utc.iso8601}: Deciding whether to add: #{role}")
+              Instance::bot.send_message(SiteSetting.discord_sync_admin_channel_id, "#{Time.now.utc.iso8601}: Deciding whether to add: #{role.name}")
             end
 
-            unless role.nil? || (member.role? role) then
-              Instance::bot.send_message(SiteSetting.discord_sync_admin_channel_id, "#{Time.now.utc.iso8601}: @#{user.username} granted role #{role}")
-              member.add_role(role)
+            unless (member.role? role) then
+              member.add_role(role)              
+              Instance::bot.send_message(SiteSetting.discord_sync_admin_channel_id, "#{Time.now.utc.iso8601}: @#{user.username} granted role #{role.name}")
             end
           end
 
