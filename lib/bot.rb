@@ -35,7 +35,7 @@ class Bot
 
       bot.ready do |event|
         puts "Logged in as #{bot.profile.username} (ID:#{bot.profile.id}) | #{bot.servers.size} servers"
-        Instance::bot.send_message(SiteSetting.discord_sync_admin_channel_id, "Discourse/Discord Bot Sync started!")
+        Instance::bot.send_message(SiteSetting.discord_sync_admin_channel_id, "aloha.pk sync bot started!")
       end
 
       # Add a simple command to confirm everything works properly

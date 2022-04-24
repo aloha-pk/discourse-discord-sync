@@ -3,7 +3,7 @@ require 'time'
 # Class that will run all sync jobs
 class Util
 
-  #create {'forum group'=> 'discord role'} ALOHA_MAP
+  # Create {'forum group'=> 'discord role'} ALOHA_MAP
   ALOHA_MAP = { 
     'staff-big-kahuna'=> "big kahuna", 
     'staff-manager'=> "manager", 
@@ -38,11 +38,6 @@ class Util
   def self.find_role(forum_group)
     discord_role = nil
     discord_role_name = ALOHA_MAP[forum_group]
-
-    if SiteSetting.discord_debug_enabled then
-      Instance::bot.send_message(SiteSetting.discord_sync_admin_channel_id, "#{Time.now.utc.iso8601}: find_role() role name: #{discord_role_name}")
-    end
-
     # if role exists, fetch discord role
     if discord_role_name then
       Instance::bot.servers.each do |key, server|
@@ -59,30 +54,25 @@ class Util
 
   # Method triggered to sync user on Discord server join
   def self.sync_from_discord(discord_id)
-    # Search for users with the given Discord UD
+    # search for users with the given Discord UD
     builder = DB.build("select u.* from user_associated_accounts uaa, users u /*where*/ limit 1")
     builder.where("provider_name = :provider_name", provider_name: "discord")
     builder.where("uaa.user_id = u.id")
     builder.where("uaa.provider_uid = :discord_id", discord_id: discord_id)
-
     result = builder.query
-
-    # If forum account found
+    # if forum account found
     if result.size != 0 then
-
-      # Process and sync the user using the standard Discourse method
+      # process and sync the user using the standard Discourse method
       result.each do |t|
         self.sync_user(t)
       end
-
     end
   end  
 
   # Sync users from Discourse to Discord
   def self.sync_user(user)
     discord_id = nil
-
-    # Fetch the Discord ID from database
+    # fetch the Discord ID from database
     builder = DB.build("select uaa.provider_uid from user_associated_accounts uaa /*where*/ limit 1")
     builder.where("provider_name = :provider_name", provider_name: "discord")
     builder.where("uaa.user_id = :user_id", user_id: user.id)
@@ -91,15 +81,15 @@ class Util
     end
 
     unless discord_id.nil? then
-      forum_groups = []
+      current_discord_roles = []
       discord_roles = []
+      forum_groups = []
 
       if SiteSetting.discord_debug_enabled then
         Instance::bot.send_message(SiteSetting.discord_sync_admin_channel_id, "#{Time.now.utc.iso8601}: Attempting role sync on: #{discord_id}")
-        Instance::bot.send_message(SiteSetting.discord_sync_admin_channel_id, "#{Time.now.utc.iso8601}: Forum Groups: #{forum_groups}, Discord Roles: #{discord_roles}")
       end
 
-      # Get user groups from database and populate discord_roles
+      # get user groups from database and populate discord_roles
       builder = DB.build("select g.name from groups g, group_users gu /*where*/")
       builder.where("g.visibility_level = :visibility", visibility: 0)
       builder.where("g.id = gu.group_id")
@@ -107,15 +97,7 @@ class Util
       builder.query.each do |t|
         forum_groups << t.name
         discord_roles << self.find_role(t.name)
-      end
-
-      forum_groups -= [nil, ''] # just in case
-      discord_roles -= [nil, '']
-
-      if SiteSetting.discord_debug_enabled then
-        Instance::bot.send_message(SiteSetting.discord_sync_admin_channel_id, "#{Time.now.utc.iso8601}: Fetching groups for: #{user.id}")
-        Instance::bot.send_message(SiteSetting.discord_sync_admin_channel_id, "#{Time.now.utc.iso8601}: Forum Groups: #{forum_groups}, Discord Roles: #{discord_roles}")
-      end
+      end      
       
       # For each server, just keep things synced
       Instance::bot.servers.each do |key, server|
@@ -131,35 +113,67 @@ class Util
           # If there is a verified role set, grant the user with that role
           if SiteSetting.discord_sync_verified_role != "" then
             role = self.find_role(SiteSetting.discord_sync_verified_role)
+            # if role exists and member doesn't have role
             unless role.nil? || (member.role? role) then
+              # if debug enabled, print the verified role being added to user
+              if SiteSetting.discord_debug_enabled then
+                Instance::bot.send_message(SiteSetting.discord_sync_admin_channel_id, "#{Time.now.utc.iso8601}: Adding verified role: #{role.name}")
+              end
+              # add verified role to roles to be added to user
               discord_roles << role
             end
           end
 
-          # Keep discord_sync_safe roles 
+          # Ensure sync_safe roles are added to the user, if they currently have them. 
           member.roles.each do |role|
+            current_discord_roles << role
+            # if the role is included in sync_safe_roles
             if (SiteSetting.discord_sync_safe_roles.include? role.name) then
+              # if debug enabled, print the sync_safe role being added to user
+              if SiteSetting.discord_debug_enabled then
+                Instance::bot.send_message(SiteSetting.discord_sync_admin_channel_id, "#{Time.now.utc.iso8601}: Adding sync_safe role: #{role.name}")
+              end
+              # add sync_safe role to roles to be added to user
               discord_roles << role
             end
           end
+
+          # Add event role to user if they're in dynamically named/created aloha.pk event group
+          if forum_groups.any? { |group| group.include?('event-') } then
+            discord_roles << self.find_role('event')
+          end
+
+          # If debug enabled, print list of current roles the user has before sync
+          if SiteSetting.discord_debug_enabled then
+            roles_string = current_discord_roles.map(&:name).join(', ')
+            Instance::bot.send_message(SiteSetting.discord_sync_admin_channel_id, "#{Time.now.utc.iso8601}: @#{user.username} roles before sync: #{roles_string}")
+          end
+
+          # Just in case
+          discord_roles -= [nil, '']
 
           # Add all roles which the user is a part of
           member.set_roles(discord_roles)
+          # Print notification to admin channel          
           roles_string = discord_roles.map(&:name).join(', ')             
-          Instance::bot.send_message(SiteSetting.discord_sync_admin_channel_id, "#{Time.now.utc.iso8601}: Set @#{user.username} roles to #{roles_string}")          
-
+          Instance::bot.send_message(SiteSetting.discord_sync_admin_channel_id, "#{Time.now.utc.iso8601}: Set @#{user.username} roles to #{roles_string}") 
+          # Print notification to public channel
+          self.build_send_public_message()      
         end
       end      
     end
   end
 
-  #Sync groups from Discourse to Discord
-  def self.sync_groups_and_roles()
-    #to:do
-    #fetch forum group color and set discord role color
-    #fetch forum group icon pic and set dicord role icon
-
-    # For each server, just keep things synced
-    #Instance::bot.servers.each do |key, server|  
+  # Build and send a formatted message to the public channel
+  def self.build_send_public_message()
+    # TODO properly format and beautify role sync public message
   end
+
+  # Sync groups from Discourse to Discord
+  def self.sync_groups_and_roles()
+    # TODO for each group,
+    # fetch forum group color and set discord role color
+    # fetch forum group icon pic and set dicord role icon
+  end
+
 end

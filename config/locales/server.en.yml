@@ -4,6 +4,7 @@ en:
       discord_sync_token: "Bot Token obtained from Discord Developer Portal"
       discord_sync_prefix: "Prefix for the ping command to work"
       discord_sync_admin_channel_id: "ID of logging channel"
+      discord_sync_public_channel_id: "ID of public channel"
       discord_sync_username: "Sync the Discourse username with the Discord nickname"
       discord_sync_verified_role: "Role to be added to users that join Discord and have a Discourse profile"
       discord_sync_safe_roles: "List of roles that the bot will mark as safe and don't remove if they are not on Discourse"

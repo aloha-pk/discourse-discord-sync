@@ -11,6 +11,9 @@ plugins:
   discord_sync_admin_channel_id:
     default: ''
     client: false
+  discord_sync_public_channel_id:
+    default: ''
+    client: false
   discord_sync_username:
     default: true
     client: false

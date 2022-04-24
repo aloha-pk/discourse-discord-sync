@@ -63,7 +63,7 @@ after_initialize do
   #end
 
   STDERR.puts '--------------------------------------------------'
-  STDERR.puts '!Discord-Sync Bot spawned, say "!ping" on Discord!'
+  STDERR.puts 'aloha.pk sync bot spawned, say "!ping" on Discord!'
   STDERR.puts '--------------------------------------------------'
   STDERR.puts '(-------      If not check logs          --------)'
 end
