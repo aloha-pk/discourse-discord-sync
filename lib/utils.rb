@@ -113,8 +113,7 @@ class Util
           # If there is a verified role set, grant the user with that role
           if SiteSetting.discord_sync_verified_role != "" then
             role = self.find_role(SiteSetting.discord_sync_verified_role)
-            # if role exists and member doesn't have role
-            unless role.nil? || (member.role? role) then
+            unless role.nil? then
               # if debug enabled, print the verified role being added to user
               if SiteSetting.discord_debug_enabled then
                 Instance::bot.send_message(SiteSetting.discord_sync_admin_channel_id, "#{Time.now.utc.iso8601}: Adding verified role: #{role.name}")
@@ -122,19 +121,21 @@ class Util
               # add verified role to roles to be added to user
               discord_roles << role
             end
-          end
+          end  
 
-          # Ensure sync_safe roles are added to the user, if they currently have them. 
-          member.roles.each do |role|
-            current_discord_roles << role
-            # if the role is included in sync_safe_roles
-            if (SiteSetting.discord_sync_safe_roles.include? role.name) then
-              # if debug enabled, print the sync_safe role being added to user
-              if SiteSetting.discord_debug_enabled then
-                Instance::bot.send_message(SiteSetting.discord_sync_admin_channel_id, "#{Time.now.utc.iso8601}: Adding sync_safe role: #{role.name}")
+          # Populate current_discord_roles and ensure sync_safe roles are added to the user, if they currently have them. 
+          server.roles.each do |role|
+            if (member.role? role) then                            
+              current_discord_roles << role
+              # if the role is included in sync_safe_roles
+              if (SiteSetting.discord_sync_safe_roles.include? role.name) then
+                # if debug enabled, print the sync_safe role being added to user
+                if SiteSetting.discord_debug_enabled then
+                  Instance::bot.send_message(SiteSetting.discord_sync_admin_channel_id, "#{Time.now.utc.iso8601}: Adding sync_safe role: #{role.name}")
+                end
+                # add sync_safe role to roles to be added to user
+                discord_roles << role
               end
-              # add sync_safe role to roles to be added to user
-              discord_roles << role
             end
           end
 
