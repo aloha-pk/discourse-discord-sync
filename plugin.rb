@@ -18,7 +18,8 @@ gem 'http-accept', '1.7.0', { require: false }
 gem 'rest-client', '2.1.0.rc1'
 
 gem 'discordrb-webhooks', '3.3.0', {require: false}
-gem 'discordrb', '3.3.0'
+libdir = File.join(File.dirname(__FILE__), "discordrb/lib")
+$LOAD_PATH.unshift(libdir) unless $LOAD_PATH.include?(libdir)
 
 
 enabled_site_setting :discord_sync_enabled
