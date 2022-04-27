@@ -1,0 +1,3 @@
+[submodule "discordrb"]
+	path = discordrb
+	url = https://github.com/shardlab/discordrb.git
