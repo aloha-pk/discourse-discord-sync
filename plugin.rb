@@ -18,7 +18,7 @@ gem 'http-accept', '1.7.0', { require: false }
 gem 'rest-client', '2.1.0.rc1'
 
 gem 'discordrb-webhooks', '3.4.1', {require: false}
-libdir = File.join(File.dirname(__FILE__), "discordrb-3.4.1/lib")
+libdir = File.join(File.dirname(__FILE__), "discordrb/lib")
 $LOAD_PATH.unshift(libdir) unless $LOAD_PATH.include?(libdir)
 
 
