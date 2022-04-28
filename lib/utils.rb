@@ -107,9 +107,8 @@ class Util
         member = server.member(discord_id)
         unless member.nil? then
 
-          if server.member_cached? member.id then
-            server.members.delete(member.id)
-            member = server.member(discord_id)
+          if SiteSetting.discord_debug_enabled then
+            Instance::bot.send_message(SiteSetting.discord_sync_admin_channel_id, "#{Time.now.utc.iso8601}: Using discordrb version: #{Discordrb::VERSION}")
           end
 
           # Make nickname the same as Discourse username, if setting is enabled
