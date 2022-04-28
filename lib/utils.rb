@@ -146,8 +146,9 @@ class Util
             :get,
             "#{Discordrb::API.api_base}/guilds/#{server.id}/members/#{member.id}",
             Authorization: SiteSetting.discord_sync_token
-          ) 
-          uncached_member.roles.each do |role|       
+          )
+          aloha_member = Member.new(JSON.parse(uncached_member), server, Instance::bot) 
+          aloha_member.roles.each do |role|       
             if role.name != "@everyone" then                     
               current_discord_roles << role
               # if the role is included in sync_safe_roles
