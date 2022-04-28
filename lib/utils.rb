@@ -147,7 +147,7 @@ class Util
             "#{Discordrb::API.api_base}/guilds/#{server.id}/members/#{member.id}",
             Authorization: SiteSetting.discord_sync_token
           )
-          aloha_member = Member.new(JSON.parse(uncached_member), server, Instance::bot) 
+          aloha_member = Discordrb::Member.new(JSON.parse(uncached_member), server, Instance::bot) 
           aloha_member.roles.each do |role|       
             if role.name != "@everyone" then                     
               current_discord_roles << role
