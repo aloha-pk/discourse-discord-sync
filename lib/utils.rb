@@ -91,7 +91,6 @@ class Util
 
       # get user groups from database and populate discord_roles
       builder = DB.build("select g.name from groups g, group_users gu /*where*/")
-      builder.where("g.visibility_level = :visibility", visibility: 0)
       builder.where("g.id = gu.group_id")
       builder.where("gu.user_id = :user_id", user_id: user.id)
       builder.query.each do |t|
@@ -137,8 +136,8 @@ class Util
 
           # Populate current_discord_roles and ensure sync_safe roles are added to the user, if they currently have them. 
           server.roles.each do |role|       
-            if (member.role? role) then                     
-              current_discord_roles << if role.name != "@everyone" then role end
+            if (member.role? role) && (role.name != "@everyone") then                     
+              current_discord_roles << role
               # if the role is included in sync_safe_roles
               if (SiteSetting.discord_sync_safe_roles.include? role.name) then
                 # if debug enabled, print the sync_safe role being added to user
@@ -154,14 +153,14 @@ class Util
           # If debug enabled, print list of current roles the user has before sync
           if SiteSetting.discord_debug_enabled then
             current_discord_roles -= [nil, '']
-            current_discord_roles.sort
+            current_discord_roles.sort_by(&:name)
             roles_string = current_discord_roles.map(&:name).join(', ')
             Instance::bot.send_message(SiteSetting.discord_sync_admin_channel_id, "#{Time.now.utc.iso8601}: @#{user.username} roles before sync: #{roles_string}")
           end          
 
           # Just in case
           discord_roles -= [nil, '']
-          discord_roles.sort
+          discord_roles.sort_by(&:name)
 
           # Add all roles which the user is a part of
           member.set_roles(discord_roles)
