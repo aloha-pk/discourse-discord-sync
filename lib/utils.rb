@@ -107,6 +107,11 @@ class Util
         member = server.member(discord_id)
         unless member.nil? then
 
+          if server.member_cached? member.id then
+            server.members.delete(member.id)
+            member = server.member(discord_id)
+          end
+
           # Make nickname the same as Discourse username, if setting is enabled
           if member.nick != user.username && SiteSetting.discord_sync_username then
             Instance::bot.send_message(SiteSetting.discord_sync_admin_channel_id, "#{Time.now.utc.iso8601}: Updated nickname @#{user.username}")
@@ -153,14 +158,14 @@ class Util
           # If debug enabled, print list of current roles the user has before sync
           if SiteSetting.discord_debug_enabled then
             current_discord_roles -= [nil, '']
-            current_discord_roles.sort_by(&:name)
+            current_discord_roles.sort_by!(&:name)
             roles_string = current_discord_roles.map(&:name).join(', ')
             Instance::bot.send_message(SiteSetting.discord_sync_admin_channel_id, "#{Time.now.utc.iso8601}: @#{user.username} roles before sync: #{roles_string}")
           end          
 
           # Just in case
           discord_roles -= [nil, '']
-          discord_roles.sort_by(&:name)
+          discord_roles.sort_by!(&:name)
 
           # Add all roles which the user is a part of
           member.set_roles(discord_roles)
