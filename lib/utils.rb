@@ -138,9 +138,17 @@ class Util
             end
           end
 
-          # Populate current_discord_roles and ensure sync_safe roles are added to the user, if they currently have them. 
-          server.roles.each do |role|       
-            if (member.role? role) && (role.name != "@everyone") then                     
+          # Populate current_discord_roles and ensure sync_safe roles are added to the user, if they currently have them.
+          # DEBUG: attempt to get an uncached version of member/roles
+          uncached_member = Discordrb::API.request(
+            :guilds_sid_members_uid,
+            server.id,
+            :get,
+            "#{Discordrb::API.api_base}/guilds/#{server.id}/members/#{member.id}",
+            Authorization: SiteSetting.discord_sync_token
+          ) 
+          uncached_member.roles.each do |role|       
+            if role.name != "@everyone" then                     
               current_discord_roles << role
               # if the role is included in sync_safe_roles
               if (SiteSetting.discord_sync_safe_roles.include? role.name) then
