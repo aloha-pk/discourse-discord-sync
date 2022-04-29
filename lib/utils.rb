@@ -141,7 +141,7 @@ class Util
           # Populate current_discord_roles and ensure sync_safe roles are added to the user, if they currently have them.
           # DEBUG: attempt to get an uncached version of member/roles
           begin
-            response = Discordrb::API::Server.resolve_member(SiteSetting.discord_sync_token, server.id, member.id)
+            response = Discordrb::API::Server.resolve_member(SiteSetting.discord_sync_token, server.resolve_id, member.resolve_id)
           rescue Discordrb::Errors::UnknownUser, Discordrb::Errors::UnknownMember
             return nil
           end
