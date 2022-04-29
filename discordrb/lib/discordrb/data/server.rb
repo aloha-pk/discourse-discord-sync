@@ -123,7 +123,7 @@ module Discordrb
       return @members[id] if (member_cached?(id) && !force_uncached)
       return nil unless request
 
-      member = @bot.member(self, id)
+      member = @bot.member(self, id, force_uncached)
       @members[id] = member unless member.nil?
     rescue StandardError
       nil
