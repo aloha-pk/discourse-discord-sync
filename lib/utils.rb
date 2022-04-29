@@ -104,7 +104,7 @@ class Util
       
       # For each server, just keep things synced
       Instance::bot.servers.each do |key, server|
-        member = server.member(discord_id)
+        member = server.member(discord_id, true, true)
         unless member.nil? then
 
           if SiteSetting.discord_debug_enabled then
@@ -139,13 +139,6 @@ class Util
           end
 
           # Populate current_discord_roles and ensure sync_safe roles are added to the user, if they currently have them.
-          # DEBUG: attempt to get an uncached version of member/roles
-          # begin
-          #   response = Discordrb::API::Server.resolve_member(SiteSetting.discord_sync_token, server.resolve_id, member.resolve_id)
-          # rescue Discordrb::Errors::UnknownUser, Discordrb::Errors::UnknownMember
-          #   return nil
-          # end
-          # aloha_member = Discordrb::Member.new(JSON.parse(response), server, Instance::bot) 
           member.roles.each do |role|       
             if role.name != "@everyone" then                     
               current_discord_roles << role
