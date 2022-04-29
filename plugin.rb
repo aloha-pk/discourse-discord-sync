@@ -38,12 +38,12 @@ after_initialize do
   end
 
   # Sync user (and groups) on update (usually username)
-  User.class_eval do
-    after_save do |user|
-      if user.id > 0 then Util.sync_user(user) end
-      Util.sync_groups_and_roles()
-    end
-  end
+  # User.class_eval do
+  #   after_save do |user|
+  #     if user.id > 0 then Util.sync_user(user) end
+  #     Util.sync_groups_and_roles()
+  #   end
+  # end
 
   # Sync user (and groups) on group join
   DiscourseEvent.on(:user_added_to_group) do |user, group, automatic|
