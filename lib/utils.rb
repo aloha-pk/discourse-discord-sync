@@ -140,14 +140,12 @@ class Util
 
           # Populate current_discord_roles and ensure sync_safe roles are added to the user, if they currently have them.
           # DEBUG: attempt to get an uncached version of member/roles
-          uncached_member = Discordrb::API.request(
-            :guilds_sid_members_uid,
-            server.id,
-            :get,
-            "#{Discordrb::API.api_base}/guilds/#{server.id}/members/#{member.id}",
-            Authorization: SiteSetting.discord_sync_token
-          )
-          aloha_member = Discordrb::Member.new(JSON.parse(uncached_member), server, Instance::bot) 
+          begin
+            response = Discordrb::API::Server.resolve_member(SiteSetting.discord_sync_token, server.id, member.id)
+          rescue Discordrb::Errors::UnknownUser, Discordrb::Errors::UnknownMember
+            return nil
+          end
+          aloha_member = Discordrb::Member.new(JSON.parse(response), server, Instance::bot) 
           aloha_member.roles.each do |role|       
             if role.name != "@everyone" then                     
               current_discord_roles << role
