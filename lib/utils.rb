@@ -175,7 +175,7 @@ class Util
           roles_string = discord_roles.map(&:name).join(', ')             
           Instance::bot.send_message(SiteSetting.discord_sync_admin_channel_id, "#{Time.now.utc.iso8601}: Set @#{user.username} roles to #{roles_string}") 
           # Print notification to public channel
-          self.build_send_public_messages(member, discord_roles - current_discord_roles, current_discord_roles - discord_roles)      
+          self.build_send_public_messages(member, server, discord_roles - current_discord_roles, current_discord_roles - discord_roles)      
         end
       end      
     end
@@ -183,42 +183,32 @@ class Util
 
   # Build and send formatted messages to the public channel
   # @param member being synced
+  # @param server (used to access the channel)
   # @param Array<Role> being added
   # @param Array<Role> being removed
-  def self.build_send_public_messages(member, roles_added, roles_removed)
-    #for each role added to the user
-    roles_added do |role|
-      Instance::bot.send_message(SiteSetting.discord_sync_public_channel_id, "", false,
-        Discordrb::Embed.new(
-          { 
-            'title'=> "The #{role.name} role has been added to #{member.mention}!",
-            'description'=> "Click [here](#{SiteSetting.discord_sync_role_support_url}) to learn how to add or remove an aloha.pk role!",
-            'color'=> role.color,
-            'timestamp'=> DateTime.now.strftime('%Y-%m-%dT%H:%M:%S.%L%z'),
-            'footer'=> {
-              'text'=> "aloha.pk",
-              'icon_url'=> SiteSetting.discord_sync_message_footer_logo_url              
-            }             
-          }, ""
-        )
-      )
-    end
-    #for each role removed from the user
-    roles_removed do |role|
-      Instance::bot.send_message(SiteSetting.discord_sync_public_channel_id, "", false,
-        Discordrb::Embed.new(
-          { 
-            'title'=> "The #{role.name} role has been removed from #{member.mention}!",
-            'description'=> "Click [here](#{SiteSetting.discord_sync_role_support_url}) to learn how to add or remove an aloha.pk role!",
-            'color'=> role.color,
-            'timestamp'=> DateTime.now.strftime('%Y-%m-%dT%H:%M:%S.%L%z'),
-            'footer'=> {
-              'text'=> "aloha.pk",
-              'icon_url'=> SiteSetting.discord_sync_message_footer_logo_url              
-            }             
-          }, ""
-        )
-      )
+  def self.build_send_public_messages(member, server, roles_added, roles_removed)    
+    channel = server.channels_by_id[SiteSetting.discord_sync_public_channel_id]
+    unless channel.nil? then
+      #for each role added to the user, send embedded message
+      roles_added do |role|
+        channel.send_embed do |embed|
+          embed.title = "The #{role.name} role has been added to #{member.mention}!"
+          embed.description = "Click [here](#{SiteSetting.discord_sync_role_support_url}) to learn how to add or remove an aloha.pk role!"
+          embed.color = role.color
+          embed.timestamp = DateTime.now.strftime('%Y-%m-%dT%H:%M:%S.%L%z')
+          embed.footer = Discordrb::Embed:EmbedFooter.new({text: "aloha.pk", icon_url: SiteSetting.discord_sync_message_footer_logo_url})
+        end
+      end
+      #for each role removed from the user, send embedded message
+      roles_removed do |role|
+        channel.send_embed do |embed|
+          embed.title = "The #{role.name} role has been removed from #{member.mention}!"
+          embed.description = "Click [here](#{SiteSetting.discord_sync_role_support_url}) to learn how to add or remove an aloha.pk role!"
+          embed.color = role.color
+          embed.timestamp = DateTime.now.strftime('%Y-%m-%dT%H:%M:%S.%L%z')
+          embed.footer = Discordrb::Webhooks:EmbedFooter.new(text: "aloha.pk", icon_url: SiteSetting.discord_sync_message_footer_logo_url)
+        end
+      end
     end
   end
 
