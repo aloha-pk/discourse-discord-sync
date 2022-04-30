@@ -189,13 +189,19 @@ class Util
   def self.build_send_public_messages(member, server, roles_added, roles_removed)    
     channel = server.channels_by_id[SiteSetting.discord_sync_public_channel_id]
     unless channel.nil? then
+      # send debug message if enabled
+      if SiteSetting.discord_debug_enabled then       
+        roles_added_string = roles_added.map(&:name).join(', ')
+        roles_removed_string = roles_removed.map(&:name).join(', ')
+        Instance::bot.send_message(SiteSetting.discord_sync_admin_channel_id, "#{Time.now.utc.iso8601}: @#{member.name} on #{server.name}- Added: #{roles_added_string}  Removed: #{roles_removed_string}")
+      end
       #for each role added to the user, send embedded message
       roles_added.each do |role|
         channel.send_embed do |embed|
           embed.title = "The #{role.name} role has been added to #{member.mention}!"
           embed.description = "Click [here](#{SiteSetting.discord_sync_role_support_url}) to learn how to add or remove an aloha.pk role!"
           embed.color = role.color
-          embed.timestamp = DateTime.now.strftime('%Y-%m-%dT%H:%M:%S.%L%z')
+          embed.timestamp = Time.now
           embed.footer = Discordrb::Webhooks::EmbedFooter.new(text: "aloha.pk", icon_url: SiteSetting.discord_sync_message_footer_logo_url)
         end
       end
@@ -205,7 +211,7 @@ class Util
           embed.title = "The #{role.name} role has been removed from #{member.mention}!"
           embed.description = "Click [here](#{SiteSetting.discord_sync_role_support_url}) to learn how to add or remove an aloha.pk role!"
           embed.color = role.color
-          embed.timestamp = DateTime.now.strftime('%Y-%m-%dT%H:%M:%S.%L%z')
+          embed.timestamp = Time.now
           embed.footer = Discordrb::Webhooks::EmbedFooter.new(text: "aloha.pk", icon_url: SiteSetting.discord_sync_message_footer_logo_url)
         end
       end
