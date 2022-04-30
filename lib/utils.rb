@@ -1,4 +1,5 @@
 require 'time'
+require 'date'
 
 # Class that will run all sync jobs
 class Util
@@ -53,6 +54,7 @@ class Util
   end
 
   # Method triggered to sync user on Discord server join
+  # @param Discord ID of user or member
   def self.sync_from_discord(discord_id)
     # search for users with the given Discord UD
     builder = DB.build("select u.* from user_associated_accounts uaa, users u /*where*/ limit 1")
@@ -70,6 +72,7 @@ class Util
   end  
 
   # Sync users from Discourse to Discord
+  # @param aloha.pk forum user
   def self.sync_user(user)
     discord_id = nil
     # fetch the Discord ID from database
@@ -172,15 +175,51 @@ class Util
           roles_string = discord_roles.map(&:name).join(', ')             
           Instance::bot.send_message(SiteSetting.discord_sync_admin_channel_id, "#{Time.now.utc.iso8601}: Set @#{user.username} roles to #{roles_string}") 
           # Print notification to public channel
-          self.build_send_public_message()      
+          self.build_send_public_messages(member, discord_roles - current_discord_roles, current_discord_roles - discord_roles)      
         end
       end      
     end
   end
 
-  # Build and send a formatted message to the public channel
-  def self.build_send_public_message()
-    # TODO properly format and beautify role sync public message
+  # Build and send formatted messages to the public channel
+  # @param member being synced
+  # @param Array<Role> being added
+  # @param Array<Role> being removed
+  def self.build_send_public_messages(member, roles_added, roles_removed)
+    #for each role added to the user
+    roles_added do |role|
+      Instance::bot.send_message(SiteSetting.discord_sync_public_channel_id, "", false,
+        Discordrb::Embed.new(
+          { 
+            'title'=> "The #{role.name} role has been added to #{member.mention}!",
+            'description'=> "Click [here](#{SiteSetting.discord_sync_role_support_url}) to learn how to add or remove an aloha.pk role!",
+            'color'=> role.color,
+            'timestamp'=> DateTime.now.strftime('%Y-%m-%dT%H:%M:%S.%L%z'),
+            'footer'=> {
+              'text'=> "aloha.pk",
+              'icon_url'=> SiteSetting.discord_sync_message_footer_logo_url              
+            }             
+          }, ""
+        )
+      )
+    end
+    #for each role removed from the user
+    roles_removed do |role|
+      Instance::bot.send_message(SiteSetting.discord_sync_public_channel_id, "", false,
+        Discordrb::Embed.new(
+          { 
+            'title'=> "The #{role.name} role has been removed from #{member.mention}!",
+            'description'=> "Click [here](#{SiteSetting.discord_sync_role_support_url}) to learn how to add or remove an aloha.pk role!",
+            'color'=> role.color,
+            'timestamp'=> DateTime.now.strftime('%Y-%m-%dT%H:%M:%S.%L%z'),
+            'footer'=> {
+              'text'=> "aloha.pk",
+              'icon_url'=> SiteSetting.discord_sync_message_footer_logo_url              
+            }             
+          }, ""
+        )
+      )
+    end
   end
 
   # Sync groups from Discourse to Discord

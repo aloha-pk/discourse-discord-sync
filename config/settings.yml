@@ -14,6 +14,12 @@ plugins:
   discord_sync_public_channel_id:
     default: ''
     client: false
+  discord_sync_role_support_url:
+    default: ''
+    client: false
+  discord_sync_message_footer_logo_url:
+    default: ''
+    client: false
   discord_sync_username:
     default: true
     client: false

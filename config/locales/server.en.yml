@@ -5,6 +5,8 @@ en:
       discord_sync_prefix: "Prefix for the ping command to work"
       discord_sync_admin_channel_id: "ID of logging channel"
       discord_sync_public_channel_id: "ID of public channel"
+      discord_sync_role_support_url: "The url in embedded public channel add/remove messages"
+      discord_sync_message_footer_logo_url: "The logo image url for the embedded public channel add/remove messages"
       discord_sync_username: "Sync the Discourse username with the Discord nickname"
       discord_sync_verified_role: "Role to be added to users that join Discord and have a Discourse profile"
       discord_sync_safe_roles: "List of roles that the bot will mark as safe and don't remove if they are not on Discourse"
