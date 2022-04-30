@@ -196,7 +196,7 @@ class Util
           embed.description = "Click [here](#{SiteSetting.discord_sync_role_support_url}) to learn how to add or remove an aloha.pk role!"
           embed.color = role.color
           embed.timestamp = DateTime.now.strftime('%Y-%m-%dT%H:%M:%S.%L%z')
-          embed.footer = Discordrb::Embed:EmbedFooter.new({text: "aloha.pk", icon_url: SiteSetting.discord_sync_message_footer_logo_url})
+          embed.footer = Discordrb::Webhooks::EmbedFooter.new({text: "aloha.pk", icon_url: SiteSetting.discord_sync_message_footer_logo_url})
         end
       end
       #for each role removed from the user, send embedded message
@@ -206,7 +206,7 @@ class Util
           embed.description = "Click [here](#{SiteSetting.discord_sync_role_support_url}) to learn how to add or remove an aloha.pk role!"
           embed.color = role.color
           embed.timestamp = DateTime.now.strftime('%Y-%m-%dT%H:%M:%S.%L%z')
-          embed.footer = Discordrb::Webhooks:EmbedFooter.new(text: "aloha.pk", icon_url: SiteSetting.discord_sync_message_footer_logo_url)
+          embed.footer = Discordrb::Webhooks::EmbedFooter.new(text: "aloha.pk", icon_url: SiteSetting.discord_sync_message_footer_logo_url)
         end
       end
     end
