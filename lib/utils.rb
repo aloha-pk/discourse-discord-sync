@@ -175,7 +175,7 @@ class Util
           roles_string = discord_roles.map(&:name).join(', ')             
           Instance::bot.send_message(SiteSetting.discord_sync_admin_channel_id, "#{Time.now.utc.iso8601}: Set @#{user.username} roles to #{roles_string}") 
           # Print notification to public channel
-          self.build_send_public_messages(member, server, discord_roles - current_discord_roles, current_discord_roles - discord_roles)      
+          self.build_send_public_messages(member, discord_roles - current_discord_roles, current_discord_roles - discord_roles)      
         end
       end      
     end
@@ -183,17 +183,16 @@ class Util
 
   # Build and send formatted messages to the public channel
   # @param member being synced
-  # @param server (used to access the channel)
   # @param Array<Role> being added
   # @param Array<Role> being removed
-  def self.build_send_public_messages(member, server, roles_added, roles_removed)    
-    channel = server.channels_by_id[SiteSetting.discord_sync_public_channel_id]
+  def self.build_send_public_messages(member, roles_added, roles_removed)    
+    channel = Instance::bot.channel(SiteSetting.discord_sync_public_channel_id)
     unless channel.nil? then
       # send debug message if enabled
       if SiteSetting.discord_debug_enabled then       
         roles_added_string = roles_added.map(&:name).join(', ')
         roles_removed_string = roles_removed.map(&:name).join(', ')
-        Instance::bot.send_message(SiteSetting.discord_sync_admin_channel_id, "#{Time.now.utc.iso8601}: @#{member.name} on #{server.name}- Added: #{roles_added_string}  Removed: #{roles_removed_string}")
+        Instance::bot.send_message(SiteSetting.discord_sync_admin_channel_id, "#{Time.now.utc.iso8601}: @#{member.name}- Added: #{roles_added_string}  Removed: #{roles_removed_string}")
       end
       #for each role added to the user, send embedded message
       roles_added.each do |role|
