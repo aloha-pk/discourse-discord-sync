@@ -35,6 +35,33 @@ class Util
     'event'=> "event" # dynamic for all event groups; handled in sync_user()
   }
 
+  # Create array of messages for member sync alerts.
+  PUBLIC_PING_MESSAGES = [
+    "Heads up, %s!",
+    "%s, think fast!",
+    "Hey you. Yes, you %s. Your attention is required!",
+    "Look over here, %s!",
+    "This is for you, %s!",
+    "Urgent message for: %s!",
+    "You've been synced, %s!",
+    "Attention %s!",
+    "For you, %s!",
+    "%s officially synced!",
+    "I made this ping for you, %s!",
+    "Hello there, %s.  You've been synced!",
+    "Sync? Done. %s!",
+    "Synced %s!",
+    "Pinging %s!",
+    "Take a look at this, %s!",
+    "Sync notification for: %s!",
+    "Notifying %s of sync!",
+    "Sync alert for: %s!",
+    "Alerting %s of sync!",
+    "Holy moly, %s has been synced!",
+    "Woah, %s has been synced!",
+    "Wow, %s has been synced!"
+  ]
+
   # Search for a role in the Discord server with a given Discourse group name
   def self.find_role(forum_group)
     discord_role = nil
@@ -197,7 +224,7 @@ class Util
       #for each role added to the user, send embedded message
       roles_added.each do |role|
         channel.send_embed do |embed|
-          embed.title = "The #{role.name} role has been added to #{member.mention}!"
+          embed.title = "The #{role.name} role has been added to #{member.name}!"
           embed.description = "Click [here](#{SiteSetting.discord_sync_role_support_url}) to learn how to add or remove an aloha.pk role!"
           embed.color = role.color
           embed.timestamp = Time.now
@@ -207,13 +234,14 @@ class Util
       #for each role removed from the user, send embedded message
       roles_removed.each do |role|
         channel.send_embed do |embed|
-          embed.title = "The #{role.name} role has been removed from #{member.mention}!"
+          embed.title = "The #{role.name} role has been removed from #{member.name}!"
           embed.description = "Click [here](#{SiteSetting.discord_sync_role_support_url}) to learn how to add or remove an aloha.pk role!"
           embed.color = role.color
           embed.timestamp = Time.now
           embed.footer = Discordrb::Webhooks::EmbedFooter.new(text: "aloha.pk", icon_url: SiteSetting.discord_sync_message_footer_logo_url)
         end
       end
+      Instance::bot.send_message(SiteSetting.discord_sync_public_channel_id, PUBLIC_PING_MESSAGES.sample % member.mention)
     end
   end
 
