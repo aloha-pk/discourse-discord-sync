@@ -190,7 +190,7 @@ class Util
     channel = server.channels_by_id[SiteSetting.discord_sync_public_channel_id]
     unless channel.nil? then
       #for each role added to the user, send embedded message
-      roles_added do |role|
+      roles_added.each do |role|
         channel.send_embed do |embed|
           embed.title = "The #{role.name} role has been added to #{member.mention}!"
           embed.description = "Click [here](#{SiteSetting.discord_sync_role_support_url}) to learn how to add or remove an aloha.pk role!"
@@ -200,7 +200,7 @@ class Util
         end
       end
       #for each role removed from the user, send embedded message
-      roles_removed do |role|
+      roles_removed.each do |role|
         channel.send_embed do |embed|
           embed.title = "The #{role.name} role has been removed from #{member.mention}!"
           embed.description = "Click [here](#{SiteSetting.discord_sync_role_support_url}) to learn how to add or remove an aloha.pk role!"
