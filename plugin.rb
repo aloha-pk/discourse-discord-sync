@@ -45,16 +45,14 @@ after_initialize do
   #   end
   # end
 
-  # Sync user (and groups) on group join
+  # Sync user on group join
   DiscourseEvent.on(:user_added_to_group) do |user, group, automatic|
     if user.id > 0 then Util.sync_user(user) end
-    Util.sync_groups_and_roles()
   end
 
-  # Sync user (and groups) on group removal
+  # Sync user on group removal
   DiscourseEvent.on(:user_removed_from_group) do |user, group|
     if user.id > 0 then Util.sync_user(user) end
-    Util.sync_groups_and_roles()
   end
 
   # Sync user (and groups) after authenticating with Discord

@@ -43,6 +43,15 @@ class Bot
         event.respond 'Pong!'
       end
 
+      # Add a simple command to trigger Group -> Role sync
+      bot.command(:sync) do |event|
+        if event.channel.id == SiteSetting.discord_sync_admin_channel_id then
+          event.respond 'Starting Group -> Role sync!'
+          Util.sync_groups_and_roles()
+          event.respond 'Completed Group -> Role sync!'
+        end
+      end
+
       bot.run
     end
   end
