@@ -35,6 +35,9 @@ class Util
     'event'=> "event" # dynamic for all event groups; handled in sync_user()
   }
 
+  # Create an inverted version of ALOHA_MAP - {'discord role'=> 'forum group'}
+  ALOHA_MAP_INVERT = ALOHA_MAP.invert()
+
   # Create array of messages for member sync alerts.
   PUBLIC_PING_MESSAGES = [
     "Heads up, %s!",
@@ -63,6 +66,7 @@ class Util
   ]
 
   # Search for a role in the Discord server with a given Discourse group name
+  # @param forum group name string
   def self.find_role(forum_group)
     discord_role = nil
     discord_role_name = ALOHA_MAP[forum_group]
@@ -80,6 +84,24 @@ class Util
     discord_role
   end
 
+  # Search for a group on the forum given a Discourse group name
+  # @param forum group name string
+  def self.find_group(discord_role)
+    forum_group = nil
+    forum_group_name = ALOHA_MAP_INVERT[discord_role]
+    if forum_group_name then
+      # search for group with the given forum group name
+      builder = DB.build("select g.* from groups g /*where*/")
+      builder.where("g.name = :forum_group_name", forum_group_name: forum_group_name)
+      # if group found, set it to forum_group
+      (builder.query || []).each do |t|
+        forum_group = t
+      end
+    end
+    # return group, or nil if it doesn't exist on forum
+    forum_group
+  end
+
   # Method triggered to sync user on Discord server join
   # @param Discord ID of user or member
   def self.sync_from_discord(discord_id)
@@ -88,13 +110,10 @@ class Util
     builder.where("provider_name = :provider_name", provider_name: "discord")
     builder.where("uaa.user_id = u.id")
     builder.where("uaa.provider_uid = :discord_id", discord_id: discord_id)
-    result = builder.query
     # if forum account found
-    if result.size != 0 then
+    (builder.query || []).each do |t|
       # process and sync the user using the standard Discourse method
-      result.each do |t|
-        self.sync_user(t)
-      end
+      self.sync_user(t)      
     end
   end  
 
@@ -132,7 +151,7 @@ class Util
         Instance::bot.send_message(SiteSetting.discord_sync_admin_channel_id, "#{Time.now.utc.iso8601}: Fetched forum groups: #{forum_groups}")
       end
       
-      # For each server, just keep things synced
+      # For each server, just to keep things synced
       Instance::bot.servers.each do |key, server|
         member = server.member(discord_id, true, true)
         unless member.nil? then
@@ -247,9 +266,30 @@ class Util
 
   # Sync groups from Discourse to Discord
   def self.sync_groups_and_roles()
-    # TODO for each group,
-    # fetch forum group color and set discord role color
-    # fetch forum group icon pic and set dicord role icon
+    synced_roles = []
+    # for each server, just to keep things synced
+    Instance::bot.servers.each do |key, server|
+      server.roles.each do |role|
+        group = self.find_group(role.name)
+        # if group found
+        unless group.nil? then
+          # set role color
+          role_color = (group.flair_bg_color || '969c9f')
+          role.color(role_color.to_i(16))
+          # set role icon
+          icon_name = (group.flair_icon || 'user')
+          role.icon(File.open("icons/#{icon_name}.png"))
+          # add role to synced_roles
+          synced_roles << role 
+        end
+      end
+    end    
+    # if debug enabled, print list of roles that were synced
+    if SiteSetting.discord_debug_enabled then
+      synced_roles -= [nil, '']
+      roles_string = synced_roles.map(&:name).join(', ')
+      Instance::bot.send_message(SiteSetting.discord_sync_admin_channel_id, "#{Time.now.utc.iso8601}: Synced roles: #{roles_string}")
+    end
   end
 
 end
