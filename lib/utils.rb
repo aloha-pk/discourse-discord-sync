@@ -147,82 +147,86 @@ class Util
         forum_groups << t.name
         discord_roles << self.find_role(t.name)
       end
-      
+            
       if SiteSetting.discord_debug_enabled then
         Instance::bot.send_message(SiteSetting.discord_sync_admin_channel_id, "#{Time.now.utc.iso8601}: Fetched forum groups: #{forum_groups}")
       end
+
+      # if the user is in the sync disabled group, do not sync the user
+      unless forum_groups.any? { |group| group.include? SiteSetting.discord_sync_disabled_group} then
       
-      # For each server, just to keep things synced
-      Instance::bot.servers.each do |key, server|
-        member = server.member(discord_id, true, true)
-        unless member.nil? then
+        # For each server, just to keep things synced
+        Instance::bot.servers.each do |key, server|
+          member = server.member(discord_id, true, true)
+          unless member.nil? then
 
-          if SiteSetting.discord_debug_enabled then
-            Instance::bot.send_message(SiteSetting.discord_sync_admin_channel_id, "#{Time.now.utc.iso8601}: Using discordrb version: #{Discordrb::VERSION}")
-          end
-
-          # Make nickname the same as Discourse username, if setting is enabled
-          if member.nick != user.username && SiteSetting.discord_sync_username then
-            Instance::bot.send_message(SiteSetting.discord_sync_admin_channel_id, "#{Time.now.utc.iso8601}: Updated nickname @#{user.username}")
-            member.set_nick(user.username)
-          end
-
-          # If there is a verified role set, grant the user with that role
-          if SiteSetting.discord_sync_verified_role != "" then
-            role = self.find_role(SiteSetting.discord_sync_verified_role)
-            unless role.nil? then
-              # if debug enabled, print the verified role being added to user
-              if SiteSetting.discord_debug_enabled then
-                Instance::bot.send_message(SiteSetting.discord_sync_admin_channel_id, "#{Time.now.utc.iso8601}: Adding verified role: #{role.name}")
-              end
-              # add verified role to roles to be added to user
-              discord_roles << role
-            end
-          end  
-
-          # Add event role to user if they're in dynamically named/created aloha.pk event group
-          if forum_groups.any? { |group| group.include? 'event-'} then
-            discord_roles << self.find_role('event')
             if SiteSetting.discord_debug_enabled then
-              Instance::bot.send_message(SiteSetting.discord_sync_admin_channel_id, "#{Time.now.utc.iso8601}: Adding event role.")
+              Instance::bot.send_message(SiteSetting.discord_sync_admin_channel_id, "#{Time.now.utc.iso8601}: Using discordrb version: #{Discordrb::VERSION}")
             end
-          end
 
-          # Populate current_discord_roles and ensure sync_safe roles are added to the user, if they currently have them.
-          member.roles.each do |role|       
-            if role.name != "@everyone" then                     
-              current_discord_roles << role
-              # if the role is included in sync_safe_roles
-              if (SiteSetting.discord_sync_safe_roles.include? role.name) then
-                # if debug enabled, print the sync_safe role being added to user
+            # Make nickname the same as Discourse username, if setting is enabled
+            if member.nick != user.username && SiteSetting.discord_sync_username then
+              Instance::bot.send_message(SiteSetting.discord_sync_admin_channel_id, "#{Time.now.utc.iso8601}: Updated nickname @#{user.username}")
+              member.set_nick(user.username)
+            end
+
+            # If there is a verified role set, grant the user with that role
+            if SiteSetting.discord_sync_verified_role != "" then
+              role = self.find_role(SiteSetting.discord_sync_verified_role)
+              unless role.nil? then
+                # if debug enabled, print the verified role being added to user
                 if SiteSetting.discord_debug_enabled then
-                  Instance::bot.send_message(SiteSetting.discord_sync_admin_channel_id, "#{Time.now.utc.iso8601}: Adding sync_safe role: #{role.name}")
+                  Instance::bot.send_message(SiteSetting.discord_sync_admin_channel_id, "#{Time.now.utc.iso8601}: Adding verified role: #{role.name}")
                 end
-                # add sync_safe role to roles to be added to user
+                # add verified role to roles to be added to user
                 discord_roles << role
               end
+            end  
+
+            # Add event role to user if they're in dynamically named/created aloha.pk event group
+            if forum_groups.any? { |group| group.include? 'event-'} then
+              discord_roles << self.find_role('event')
+              if SiteSetting.discord_debug_enabled then
+                Instance::bot.send_message(SiteSetting.discord_sync_admin_channel_id, "#{Time.now.utc.iso8601}: Adding event role.")
+              end
             end
-          end          
 
-          # If debug enabled, print list of current roles the user has before sync
-          if SiteSetting.discord_debug_enabled then
-            current_discord_roles -= [nil, '']
-            current_discord_roles.sort_by!(&:name)
-            roles_string = current_discord_roles.map(&:name).join(', ')
-            Instance::bot.send_message(SiteSetting.discord_sync_admin_channel_id, "#{Time.now.utc.iso8601}: @#{user.username} roles before sync: #{roles_string}")
-          end          
+            # Populate current_discord_roles and ensure sync_safe roles are added to the user, if they currently have them.
+            member.roles.each do |role|       
+              if role.name != "@everyone" then                     
+                current_discord_roles << role
+                # if the role is included in sync_safe_roles
+                if (SiteSetting.discord_sync_safe_roles.include? role.name) then
+                  # if debug enabled, print the sync_safe role being added to user
+                  if SiteSetting.discord_debug_enabled then
+                    Instance::bot.send_message(SiteSetting.discord_sync_admin_channel_id, "#{Time.now.utc.iso8601}: Adding sync_safe role: #{role.name}")
+                  end
+                  # add sync_safe role to roles to be added to user
+                  discord_roles << role
+                end
+              end
+            end          
 
-          # Just in case
-          discord_roles -= [nil, '']
-          discord_roles.sort_by!(&:name)
+            # If debug enabled, print list of current roles the user has before sync
+            if SiteSetting.discord_debug_enabled then
+              current_discord_roles -= [nil, '']
+              current_discord_roles.sort_by!(&:name)
+              roles_string = current_discord_roles.map(&:name).join(', ')
+              Instance::bot.send_message(SiteSetting.discord_sync_admin_channel_id, "#{Time.now.utc.iso8601}: @#{user.username} roles before sync: #{roles_string}")
+            end          
 
-          # Add all roles which the user is a part of
-          member.set_roles(discord_roles)
-          # Print notification to admin channel          
-          roles_string = discord_roles.map(&:name).join(', ')             
-          Instance::bot.send_message(SiteSetting.discord_sync_admin_channel_id, "#{Time.now.utc.iso8601}: Set @#{user.username} roles to #{roles_string}") 
-          # Print notification to public channel
-          self.build_send_public_messages(member, discord_roles - current_discord_roles, current_discord_roles - discord_roles)      
+            # Just in case
+            discord_roles -= [nil, '']
+            discord_roles.sort_by!(&:name)
+
+            # Add all roles which the user is a part of
+            member.set_roles(discord_roles)
+            # Print notification to admin channel          
+            roles_string = discord_roles.map(&:name).join(', ')             
+            Instance::bot.send_message(SiteSetting.discord_sync_admin_channel_id, "#{Time.now.utc.iso8601}: Set @#{user.username} roles to #{roles_string}") 
+            # Print notification to public channel
+            self.build_send_public_messages(member, discord_roles - current_discord_roles, current_discord_roles - discord_roles)      
+          end
         end
       end      
     end

@@ -30,6 +30,9 @@ plugins:
     default: 'Admins|Moderators'
     type: list
     list_type: compact
+  discord_sync_disabled_group:
+    default: ''
+    client: false
   discord_debug_enabled:
     default: false
     client: false

@@ -34,7 +34,9 @@ in your Discourse instance.
 - **`discord sync username`**: If true, it will sync all Discord server nicknames to their Discourse username
 - **`discord sync verified role`**: Role to add to all users who have a Discourse account
 - **`discord sync safe roles`**: List of roles that bot will ignore and will mark as manually granted in Discord
+- **`discord sync disabled group`**: Name of Discourse group that will disable members from being synced
 - **`discord debug enabled`**: Toggle debug messages to post in the admin channel
+
 
 
 ## Updating icon assets

@@ -10,4 +10,5 @@ en:
       discord_sync_username: "Sync the Discourse username with the Discord nickname"
       discord_sync_verified_role: "Role to be added to users that join Discord and have a Discourse profile"
       discord_sync_safe_roles: "List of roles that the bot will mark as safe and don't remove if they are not on Discourse"
+      discord_sync_disabled_group: "Name of group that would disable the sync of members"
       discord_debug_enabled: "Output additional debug information to the logging channel"
