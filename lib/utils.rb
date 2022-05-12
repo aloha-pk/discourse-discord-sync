@@ -14,7 +14,7 @@ class Util
     'staff-guard'=> "guard", 
     'staff-all'=> "staff", 
     'staff-retired'=> "retiree", 
-    'staff-inactive'=> "",
+    'staff-inactive'=> "inactive-staff",
     'staff-mc-manager'=> "mc-manager", 
     'staff-mc-admin'=> "mc-admin", 
     'staff-mc-moderator'=> "mc-moderator", 
@@ -23,14 +23,15 @@ class Util
     'player-mc'=> "mc-player", 
     'developer'=> "developer", 
     'news-team'=> "news-team", 
-    'news-team-leaders'=> "",
+    'news-team-leaders'=> "news-team-leaders",
     'player-trusted'=> "trusted", 
     'kamaaina'=> "kamaaina", 
-    'donor'=> "", 
+    'donor'=> "donor",
+    'backer'=>"donor", 
     'amr'=> "amr", 
     'aos-developer'=> "aos-developer", 
     'aos-modder'=> "aos-modder",
-    'aos-mapmaker'=> "", 
+    'aos-mapmaker'=> "aos-mapmaker", 
     'photographer'=> "photographer",
     'event'=> "event" # dynamic for all event groups; handled in sync_user()
   }
@@ -260,7 +261,9 @@ class Util
           embed.footer = Discordrb::Webhooks::EmbedFooter.new(text: "aloha.pk", icon_url: SiteSetting.discord_sync_message_footer_logo_url)
         end
       end
-      Instance::bot.send_message(SiteSetting.discord_sync_public_channel_id, PUBLIC_PING_MESSAGES.sample % member.mention)
+      if !roles_added.empty? || !roles_removed.empty? then
+        Instance::bot.send_message(SiteSetting.discord_sync_public_channel_id, PUBLIC_PING_MESSAGES.sample % member.mention)
+      end
     end
   end
 
