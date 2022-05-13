@@ -27,7 +27,7 @@ class Util
     'player-trusted'=> "trusted", 
     'kamaaina'=> "kamaaina", 
     'donor'=> "donor",
-    'backer'=>"donor", 
+    'backer'=>"backer", 
     'amr'=> "amr",
     'aes'=> "aes", 
     'aos-developer'=> "aos-developer", 
@@ -146,7 +146,7 @@ class Util
       builder.where("gu.user_id = :user_id", user_id: user.id)
       builder.query.each do |t|
         forum_groups << t.name
-        discord_roles << self.find_role(t.name)
+        discord_roles.add? self.find_role(t.name)
       end
             
       if SiteSetting.discord_debug_enabled then
