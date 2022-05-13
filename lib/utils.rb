@@ -278,9 +278,12 @@ class Util
     # for each server, just to keep things synced
     Instance::bot.servers.each do |key, server|
       server.roles.each do |role|
-        group = self.find_group(role.name)
+        group = self.find_group(role.name)        
         # if group found
         unless group.nil? then
+          if SiteSetting.discord_debug_enabled then
+            Instance::bot.send_message(SiteSetting.discord_sync_admin_channel_id, "#{Time.now.utc.iso8601}: Attempting group -> role sync on: #{group.name}")
+          end
           # set role color
           role_color = (group.flair_bg_color || '969c9f')
           role.color(role_color.to_i(16))
