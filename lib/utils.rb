@@ -286,10 +286,10 @@ class Util
           end
           # set role color
           role_color = (group.flair_bg_color || '969c9f')
-          role.color(Discordrb::ColourRGB.new(role_color))   
+          role.color = Discordrb::ColourRGB.new(role_color)  
           # set role icon
           icon_name = (group.flair_icon || 'user')
-          role.icon(File.open("icons/#{icon_name}.png"))       
+          role.icon = File.open("icons/#{icon_name}.png", 'rb')      
           # add role to synced_roles
           synced_roles << role 
         end
