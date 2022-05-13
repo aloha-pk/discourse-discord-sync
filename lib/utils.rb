@@ -289,7 +289,11 @@ class Util
           role.color = Discordrb::ColourRGB.new(role_color)  
           # set role icon
           icon_name = (group.flair_icon || 'user')
-          role.icon = File.open("icons/#{icon_name}.png", 'rb')      
+          path = File.expand_path("../icons/#{icon_name}.png", __dir__)
+          unless File.file? path then
+            path = File.expand_path("../icons/user.png", __dir__)
+          end
+          role.icon = File.open(path, 'rb')      
           # add role to synced_roles
           synced_roles << role 
         end
