@@ -1,0 +1,6 @@
+en:
+  admin_js:
+    admin:
+      groups:
+        discord_role_id:
+          label: "Corresponding aloha.pk Discord role ID."

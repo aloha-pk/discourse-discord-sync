@@ -26,6 +26,11 @@ enabled_site_setting :discord_sync_enabled
 
 after_initialize do
 
+  # add custom discord role ID field to all groups
+  DiscoursePluginRegistry.register_editable_group_custom_field(:discord_role_id, self)
+  register_group_custom_field_type('discord_role_id', :string)
+  add_to_serializer(:basic_group, :custom_fields) { object.custom_fields }
+
   require_dependency File.expand_path('../lib/bot.rb', __FILE__)
   require_dependency File.expand_path('../lib/utils.rb', __FILE__)
 
