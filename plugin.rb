@@ -42,6 +42,14 @@ after_initialize do
     end
   end
 
+  # Sync user (and groups) on update (usually username)
+  # User.class_eval do
+  #   after_save do |user|
+  #     if user.id > 0 then Util.sync_user(user) end
+  #     Util.sync_groups_and_roles()
+  #   end
+  # end
+
   # Sync user on group join
   DiscourseEvent.on(:user_added_to_group) do |user, group, automatic|
     if user.id > 0 then Util.sync_user(user) end
@@ -58,26 +66,6 @@ after_initialize do
       Util.sync_user(auth_result.user) 
     end
   end
-
-  # Sync user before un-authenticating with Discord
-  DiscourseEvent.on(:before_auth_revoke) do |authenticator, user|
-    if authenticator.name == "discord" && user.id > 0 then
-      Util.unsync_user(user)
-    end
-  end
-
-  # Sync all users in group when it's destroyed
-  DiscourseEvent.on(:group_destroyed) do |group|
-    builder = DB.build("SELECT u.*
-    FROM users u
-    JOIN group_users gu ON gu.user_id = u.id
-    JOIN groups g ON g.id = gu.group_id
-    /*where*/")
-    builder.where("g.id = :group_id", group_id: group.id)
-    builder.query.each do |user|
-      if user.id > 0 then Util.sync_user(user) end
-    end
-  end  
 
   STDERR.puts '--------------------------------------------------'
   STDERR.puts 'aloha.pk sync bot spawned, say "!ping" on Discord!'

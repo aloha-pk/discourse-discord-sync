@@ -1,16 +1,11 @@
 require 'discordrb'
 
-# Handler to detect new members and member updates
-module MemberHandler
+# Handler to detect new members in a server
+module NewMember
   extend Discordrb::EventContainer
 
-  # Sync user when a new user joins the server
+  # Sync users when a new user joins the server
   member_join do |event|
-    Util.sync_from_discord(event.user.id)
-  end
-
-  # Sync user when a user's roles are added/removed
-  member_update do |event|
     Util.sync_from_discord(event.user.id)
   end
 end
@@ -35,8 +30,8 @@ class Bot
     bot = Instance::init
 
     unless bot.nil?
-      # Register the member handler
-      bot.include! MemberHandler
+      # Register the new member handler
+      bot.include! NewMember
 
       bot.ready do |event|
         puts "Logged in as #{bot.profile.username} (ID:#{bot.profile.id}) | #{bot.servers.size} servers"
@@ -52,7 +47,7 @@ class Bot
       bot.command(:sync) do |event|
         if (event.channel.id).to_s == SiteSetting.discord_sync_admin_channel_id then
           event.respond 'Starting Group -> Role sync!'
-          Util.sync_groups_to_roles()
+          Util.sync_groups_and_roles()
           event.respond 'Completed Group -> Role sync!'
         end
       end
