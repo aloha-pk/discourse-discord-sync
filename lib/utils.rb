@@ -4,42 +4,6 @@ require 'date'
 # Class that will run all sync jobs
 class Util
 
-  # Create {'forum group'=> 'discord role'} ALOHA_MAP
-  ALOHA_MAP = { 
-    'staff-big-kahuna'=> "big kahuna", 
-    'staff-manager'=> "manager", 
-    'staff-sysadmin'=> "sysadmin", 
-    'staff-admin'=> "admin",
-    'staff-moderator'=> "moderator", 
-    'staff-guard'=> "guard", 
-    'staff-all'=> "staff", 
-    'staff-retired'=> "retiree", 
-    'staff-inactive'=> "inactive-staff",
-    'staff-mc-manager'=> "mc-manager", 
-    'staff-mc-admin'=> "mc-admin", 
-    'staff-mc-moderator'=> "mc-moderator", 
-    'staff-mc-guard'=> "mc-guard",
-    'staff-mc-all'=> "mc-staff", 
-    'player-mc'=> "mc-player", 
-    'developer'=> "developer", 
-    'news-team'=> "news-team", 
-    'news-team-leaders'=> "news-team-leaders",
-    'player-trusted'=> "trusted", 
-    'kamaaina'=> "kamaaina", 
-    'donor'=> "donor",
-    'backer'=>"backer", 
-    'amr'=> "amr",
-    'aes'=> "aes", 
-    'aos-developer'=> "aos-developer", 
-    'aos-modder'=> "aos-modder",
-    'aos-mapmaker'=> "aos-mapmaker", 
-    'photographer'=> "photographer",
-    'event'=> "event" # dynamic for all event groups; handled in sync_user()
-  }
-
-  # Create an inverted version of ALOHA_MAP - {'discord role'=> 'forum group'}
-  ALOHA_MAP_INVERT = ALOHA_MAP.invert()
-
   # Create array of messages for member sync alerts.
   PUBLIC_PING_MESSAGES = [
     "Heads up, %s!",
@@ -67,55 +31,69 @@ class Util
     "Wow, %s has been synced!"
   ]
 
-  # Search for a role in the Discord server with a given Discourse group name
-  # @param forum group name string
-  def self.find_role(forum_group)
-    discord_role = nil
-    discord_role_name = ALOHA_MAP[forum_group]
-    # if role exists, fetch discord role
-    if discord_role_name then
-      Instance::bot.servers.each do |key, server|
-        server.roles.each do |role|
-          if role.name == discord_role_name then
-            discord_role = role
-          end
-        end
-      end
-    end
-    # return role, or nil if it doesn't exist in ALOHA_MAP
-    discord_role
-  end
+  ALOHA_SERVER_ID = 109793081594806272
+  USER_LAST_SYNCED = Hash.new(0)  
 
-  # Search for a group on the forum given a Discourse group name
-  # @param forum group name string
-  def self.find_group(discord_role)
-    forum_group = nil
-    forum_group_name = ALOHA_MAP_INVERT[discord_role]
-    if forum_group_name then
-      # search for group with the given forum group name
-      builder = DB.build("select g.* from groups g /*where*/")
-      builder.where("g.name = :forum_group_name", forum_group_name: forum_group_name)
-      # if group found, set it to forum_group
-      (builder.query || []).each do |t|
-        forum_group = t
-      end
-    end
-    # return group, or nil if it doesn't exist on forum
-    forum_group
-  end
-
-  # Method triggered to sync user on Discord server join
+  # Method triggered to sync user on Discord event
   # @param Discord ID of user or member
   def self.sync_from_discord(discord_id)
-    # search for users with the given Discord UD
-    builder = DB.build("select u.* from user_associated_accounts uaa, users u /*where*/ limit 1")
-    builder.where("provider_name = :provider_name", provider_name: "discord")
-    builder.where("uaa.user_id = u.id")
-    builder.where("uaa.provider_uid = :discord_id", discord_id: discord_id)
-    # if forum account found
-    (builder.query || []).each do |t|
-      # process and sync the user using the standard Discourse method
-      self.sync_user(t)      
+    # check if user was synced within the past x seconds, to prevent looping syncs and unnecessary DB calls
+    if (Time.now.to_i - USER_LAST_SYNCED[discord_id]) > 2 then
+      # search for users with the given Discord ID
+      builder = DB.build("SELECT u.* FROM user_associated_accounts uaa, users u /*where*/ limit 1")
+      builder.where("uaa.provider_name = :provider_name", provider_name: "discord")
+      builder.where("uaa.user_id = u.id")
+      builder.where("uaa.provider_uid = :discord_id", discord_id: discord_id)
+      # if forum account found
+      (builder.query || []).each do |user|
+        # process and sync the user using the standard Discourse method
+        self.sync_user(user)      
+      end
+    end
+  end
+  
+  # Unsync user on Discord
+  # @param aloha.pk forum user
+  def self.unsync_user(user)
+    member = nil
+    removed_roles = []
+    aloha_server = Instance::bot.servers[ALOHA_SERVER_ID]
+
+    builder = DB.build("SELECT uaa.provider_uid FROM user_associated_accounts uaa /*where*/ limit 1")
+    builder.where("uaa.provider_name = :provider_name", provider_name: "discord")
+    builder.where("uaa.user_id = :user_id", user_id: user.id)
+    builder.query.each do |row|
+      member = aloha_server.member(row.provider_uid, true, true)  
+    end
+
+    unless member.nil? then
+      if SiteSetting.discord_debug_enabled then
+        Instance::bot.send_message(SiteSetting.discord_sync_admin_channel_id, 
+          "#{Time.now.utc.iso8601}: Attempting role unsync on: #{member.nickname}")
+      end
+
+      member.roles.each do |role|
+        # if the role isn't included in sync_safe_roles, remove it       
+        if (role.name != "@everyone") && (!SiteSetting.discord_sync_safe_roles.include? role.name) then                     
+          removed_roles << role
+        end
+      end
+
+      # Just in case
+      removed_roles -= [nil, '']
+      removed_roles.sort_by!(&:name)
+
+      # Remove roles
+      member.remove_role(removed_roles)            
+
+      # Print notification to admin channel          
+      roles_string = removed_roles.map(&:name).join(', ')             
+      Instance::bot.send_message(SiteSetting.discord_sync_admin_channel_id, "#{Time.now.utc.iso8601}: Removed #{roles_string} role(s) from @#{user.username}") 
+      # Print notification to public channel
+      self.build_send_public_messages(member, [], removed_roles) 
+      
+      # Update hashmap to keep track of when user was last synced
+      USER_LAST_SYNCED[discord_id] = Time.now.to_i
     end
   end  
 
@@ -123,42 +101,36 @@ class Util
   # @param aloha.pk forum user
   def self.sync_user(user)
     discord_id = nil
-    # fetch the Discord ID from database
-    builder = DB.build("select uaa.provider_uid from user_associated_accounts uaa /*where*/ limit 1")
-    builder.where("provider_name = :provider_name", provider_name: "discord")
+    current_discord_roles = []
+    discord_roles = []
+    forum_groups = []
+    aloha_server = Instance::bot.servers[ALOHA_SERVER_ID]
+    
+    # get user's forum groups (and corresponding discord role IDs) and user's discord id
+    builder = DB.build("SELECT uaa.provider_uid, g.name, g.discord_role_id 
+      FROM groups g 
+      JOIN group_users gu ON gu.group_id = g.id
+      JOIN user_associated_accounts uaa ON uaa.user_id = gu.user_id
+      /*where*/")
+    builder.where("uaa.provider_name = :provider_name", provider_name: "discord")
     builder.where("uaa.user_id = :user_id", user_id: user.id)
-    builder.query.each do |t|
-      discord_id = t.provider_uid
+    builder.query.each do |row|
+      discord_id = row.provider_uid
+      forum_groups << row.name
+      discord_roles << aloha_server.role(row.discord_role_id)
     end
 
-    unless discord_id.nil? then
-      current_discord_roles = []
-      discord_roles = []
-      forum_groups = []
+    unless discord_id.nil? then      
 
       if SiteSetting.discord_debug_enabled then
-        Instance::bot.send_message(SiteSetting.discord_sync_admin_channel_id, "#{Time.now.utc.iso8601}: Attempting role sync on: #{discord_id}")
-      end
-
-      # get user groups from database and populate discord_roles
-      builder = DB.build("select g.name from groups g, group_users gu /*where*/")
-      builder.where("g.id = gu.group_id")
-      builder.where("gu.user_id = :user_id", user_id: user.id)
-      builder.query.each do |t|
-        forum_groups << t.name
-        discord_roles << self.find_role(t.name)
-      end
-            
-      if SiteSetting.discord_debug_enabled then
-        Instance::bot.send_message(SiteSetting.discord_sync_admin_channel_id, "#{Time.now.utc.iso8601}: Fetched forum groups: #{forum_groups}")
+        Instance::bot.send_message(SiteSetting.discord_sync_admin_channel_id, 
+          "#{Time.now.utc.iso8601}: Attempting role sync on: #{discord_id}, with forum groups: #{forum_groups}")
       end
 
       # if the user is in the sync disabled group, do not sync the user
-      unless forum_groups.any? { |group| group.include? SiteSetting.discord_sync_disabled_group} then
-      
-        # For each server, just to keep things synced
-        Instance::bot.servers.each do |key, server|
-          member = server.member(discord_id, true, true)
+      unless forum_groups.any? { |group| group.include? SiteSetting.discord_sync_disabled_group} then              
+        
+          member = aloha_server.member(discord_id, true, true)
           unless member.nil? then
 
             if SiteSetting.discord_debug_enabled then
@@ -173,7 +145,7 @@ class Util
 
             # If there is a verified role set, grant the user with that role
             if SiteSetting.discord_sync_verified_role != "" then
-              role = self.find_role(SiteSetting.discord_sync_verified_role)
+              role = aloha_server.role(SiteSetting.discord_sync_verified_role)
               unless role.nil? then
                 # if debug enabled, print the verified role being added to user
                 if SiteSetting.discord_debug_enabled then
@@ -183,14 +155,6 @@ class Util
                 discord_roles << role
               end
             end  
-
-            # Add event role to user if they're in dynamically named/created aloha.pk event group
-            if forum_groups.any? { |group| group.include? 'event-'} then
-              discord_roles << self.find_role('event')
-              if SiteSetting.discord_debug_enabled then
-                Instance::bot.send_message(SiteSetting.discord_sync_admin_channel_id, "#{Time.now.utc.iso8601}: Adding event role.")
-              end
-            end
 
             # Populate current_discord_roles and ensure sync_safe roles are added to the user, if they currently have them.
             member.roles.each do |role|       
@@ -221,15 +185,53 @@ class Util
             discord_roles.sort_by!(&:name)
 
             # Add all roles which the user is a part of
-            member.set_roles(discord_roles)
+            member.set_roles(discord_roles)            
+
             # Print notification to admin channel          
             roles_string = discord_roles.map(&:name).join(', ')             
             Instance::bot.send_message(SiteSetting.discord_sync_admin_channel_id, "#{Time.now.utc.iso8601}: Set @#{user.username} roles to #{roles_string}") 
             # Print notification to public channel
-            self.build_send_public_messages(member, discord_roles - current_discord_roles, current_discord_roles - discord_roles)      
+            self.build_send_public_messages(member, discord_roles - current_discord_roles, current_discord_roles - discord_roles) 
+            
+            # Update hashmap to keep track of when user was last synced
+            USER_LAST_SYNCED[discord_id] = Time.now.to_i
           end
         end
       end      
+    end
+  end  
+
+  # Sync groups from Discourse to Discord
+  def self.sync_groups_to_roles()
+    synced_roles = []
+    aloha_server = Instance::bot.servers[ALOHA_SERVER_ID]
+    builder = DB.build("SELECT g.* FROM groups g WHERE g.discord_role_id IS NOT NULL")
+    builder.query.each do |group|
+      role = aloha_server.role(group.discord_role_id)        
+      # if group found
+      unless role.nil? then
+        if SiteSetting.discord_debug_enabled then
+          Instance::bot.send_message(SiteSetting.discord_sync_admin_channel_id, "#{Time.now.utc.iso8601}: Attempting group -> role sync on: #{group.name}")
+        end
+        # set role color
+        role_color = (group.flair_bg_color || '969c9f')
+        role.color = Discordrb::ColourRGB.new(role_color)  
+        # set role icon
+        icon_name = (group.flair_icon || 'user')
+        path = File.expand_path("../icons/#{icon_name}.png", __dir__)
+        unless File.file? path then
+          path = File.expand_path("../icons/user.png", __dir__)
+        end
+        role.icon = File.open(path, 'rb')      
+        # add role to synced_roles
+        synced_roles << role
+      end
+    end    
+    # if debug enabled, print list of roles that were synced
+    if SiteSetting.discord_debug_enabled then
+      synced_roles -= [nil, '']
+      roles_string = synced_roles.map(&:name).join(', ')
+      Instance::bot.send_message(SiteSetting.discord_sync_admin_channel_id, "#{Time.now.utc.iso8601}: Synced roles: #{roles_string}")
     end
   end
 
@@ -246,11 +248,17 @@ class Util
         roles_removed_string = roles_removed.map(&:name).join(', ')
         Instance::bot.send_message(SiteSetting.discord_sync_admin_channel_id, "#{Time.now.utc.iso8601}: @#{member.name}- Added: #{roles_added_string}  Removed: #{roles_removed_string}")
       end
+      if !roles_added.empty? || !roles_removed.empty? then
+        # check if user was synced within the past x seconds, to prevent unecessary pings
+        if (Time.now.to_i - USER_LAST_SYNCED[discord_id]) > 60 then
+          Instance::bot.send_message(SiteSetting.discord_sync_public_channel_id, PUBLIC_PING_MESSAGES.sample % member.mention)
+        end
+      end
       #for each role added to the user, send embedded message
       roles_added.each do |role|
         channel.send_embed do |embed|
-          embed.title = "The #{role.name} role has been added to #{member.name}!"
-          embed.description = "Click [here](#{SiteSetting.discord_sync_role_support_url}) to learn how to add or remove an aloha.pk role!"
+          embed.title = "The #{role.name} role has been added to #{member.display_name}!"
+          embed.description = "Visit our groups page [here](#{SiteSetting.discord_sync_role_support_url})!"
           embed.color = role.color
           embed.timestamp = Time.now
           embed.footer = Discordrb::Webhooks::EmbedFooter.new(text: "aloha.pk", icon_url: SiteSetting.discord_sync_message_footer_logo_url)
@@ -259,51 +267,13 @@ class Util
       #for each role removed from the user, send embedded message
       roles_removed.each do |role|
         channel.send_embed do |embed|
-          embed.title = "The #{role.name} role has been removed from #{member.name}!"
-          embed.description = "Click [here](#{SiteSetting.discord_sync_role_support_url}) to learn how to add or remove an aloha.pk role!"
+          embed.title = "The #{role.name} role has been removed from #{member.display_name}!"
+          embed.description = "Visit our groups page [here](#{SiteSetting.discord_sync_role_support_url})!"
           embed.color = role.color
           embed.timestamp = Time.now
           embed.footer = Discordrb::Webhooks::EmbedFooter.new(text: "aloha.pk", icon_url: SiteSetting.discord_sync_message_footer_logo_url)
         end
-      end
-      if !roles_added.empty? || !roles_removed.empty? then
-        Instance::bot.send_message(SiteSetting.discord_sync_public_channel_id, PUBLIC_PING_MESSAGES.sample % member.mention)
-      end
-    end
-  end
-
-  # Sync groups from Discourse to Discord
-  def self.sync_groups_and_roles()
-    synced_roles = []
-    # for each server, just to keep things synced
-    Instance::bot.servers.each do |key, server|
-      server.roles.each do |role|
-        group = self.find_group(role.name)        
-        # if group found
-        unless group.nil? then
-          if SiteSetting.discord_debug_enabled then
-            Instance::bot.send_message(SiteSetting.discord_sync_admin_channel_id, "#{Time.now.utc.iso8601}: Attempting group -> role sync on: #{group.name}")
-          end
-          # set role color
-          role_color = (group.flair_bg_color || '969c9f')
-          role.color = Discordrb::ColourRGB.new(role_color)  
-          # set role icon
-          icon_name = (group.flair_icon || 'user')
-          path = File.expand_path("../icons/#{icon_name}.png", __dir__)
-          unless File.file? path then
-            path = File.expand_path("../icons/user.png", __dir__)
-          end
-          role.icon = File.open(path, 'rb')      
-          # add role to synced_roles
-          synced_roles << role 
-        end
-      end
-    end    
-    # if debug enabled, print list of roles that were synced
-    if SiteSetting.discord_debug_enabled then
-      synced_roles -= [nil, '']
-      roles_string = synced_roles.map(&:name).join(', ')
-      Instance::bot.send_message(SiteSetting.discord_sync_admin_channel_id, "#{Time.now.utc.iso8601}: Synced roles: #{roles_string}")
+      end      
     end
   end
 
