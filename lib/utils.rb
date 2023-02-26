@@ -34,6 +34,7 @@ class Util
     'aos-modder'=> "aos-modder",
     'aos-mapmaker'=> "aos-mapmaker", 
     'photographer'=> "photographer",
+    'map-connoisseurs'=> "map-connoisseurs", 
     'event'=> "event" # dynamic for all event groups; handled in sync_user()
   }
 
